@@ -486,9 +486,17 @@
 	}
 
 	function launchRocket(x, y, peakY, colors) {
-	  const speedY = -4 - Math.random() * 4;
 	  const rocketColor = colors[Math.floor(Math.random() * colors.length)];
-	  const rocket = { x, y, peakY, exploded: false, color: rocketColor };
+	  const rocket = { 
+		x, 
+		y, 
+		peakY, 
+		exploded: false, 
+		color: rocketColor,
+		radius: 2 + Math.random() * 2, // tamanho inicial
+		sway: Math.random() * 2 + 1,   // amplitude horizontal
+		swayDir: Math.random() < 0.5 ? -1 : 1 // direção inicial da oscilação
+	  };
 
 	  const rocketSound = document.getElementById('rocketSound');
 	  rocketSound.currentTime = 0;
@@ -496,8 +504,18 @@
 
 	  const rocketInterval = setInterval(() => {
 		if (!rocket.exploded) {
-		  rocket.y += speedY;
+		  // sobe verticalmente
+		  rocket.y += -4 - Math.random() * 4;
 
+		  // oscila horizontalmente
+		  rocket.x += rocket.swayDir * Math.random() * 1.5;
+		  // inverte direção se passar limite da amplitude
+		  if (Math.abs(rocket.x - x) > rocket.sway) rocket.swayDir *= -1;
+
+		  // aumenta ou diminui o raio do foguete para parecer que se aproxima ou afasta
+		  rocket.radius = 1 + Math.sin((rocket.y / peakY) * Math.PI) * 3;
+
+		  // explode no topo
 		  if (rocket.y <= rocket.peakY) {
 			rocket.exploded = true;
 			createExplosion(rocket.x, rocket.y, colors);
@@ -524,6 +542,7 @@
 	  startFireworksAnimation();
 	}
 
+
 	function createExplosion(x, y, colors) {
 	  const particleCount = 50 + Math.floor(Math.random() * 50);
 	  for (let i = 0; i < particleCount; i++) {
@@ -536,10 +555,18 @@
 		  vx: Math.cos(angle) * speed,
 		  vy: Math.sin(angle) * speed,
 		  color: color,
-		  life: 50 + Math.random() * 30, // aumenta o tempo de vida
-		  radius: 2 + Math.random() * 2
+		  life: 50 + Math.random() * 30,   // vida da partícula
+		  radius: 2 + Math.random() * 3,   // tamanho inicial
+		  shrink: 0.05 + Math.random() * 0.05,  // taxa de encolhimento
+		  fade: 0.02 + Math.random() * 0.02     // taxa de transparência
 		});
 	  }
+	}
+	
+	function getRandomIntInclusive(min, max) {
+	  min = Math.ceil(min); // Garante que o valor mínimo seja um inteiro
+	  max = Math.floor(max); // Garante que o valor máximo seja um inteiro
+	  return Math.floor(Math.random() * (max - min + 1)) + min; // O número gerado é [min, max]
 	}
 	
 	function startFireworksAnimation() {
@@ -548,10 +575,11 @@
 		fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
 
 		for (let i = allParticles.length - 1; i >= 0; i--) {
+		  let numeroAleatorio = getRandomIntInclusive(1, 10);
 		  const p = allParticles[i];
 		  fwCtx.beginPath();
 		  fwCtx.fillStyle = p.color;
-		  fwCtx.arc(p.x, p.y, p.radius, 0, Math.PI*2);
+		  fwCtx.arc(p.x, p.y, numeroAleatorio, 0, Math.PI*2);
 		  fwCtx.fill();
 
 		  p.x += p.vx;

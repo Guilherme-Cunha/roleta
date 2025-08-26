@@ -32,7 +32,7 @@ body {
   justify-content: center;
   width: 100%;
   height: 100vh;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(0.5px);
   perspective: 1000px;
 }
 
@@ -103,7 +103,7 @@ canvas {
   border-bottom: 20px solid transparent;
   border-left: 30px solid red;
   position: absolute;
-  top: -14px;
+  top: -13px;
   right: 48%;
   transform: rotate(90deg);
 }

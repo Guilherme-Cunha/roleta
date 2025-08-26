@@ -6,6 +6,7 @@ body {
   background: black;
   color: white;
   perspective: 1200px; /* perspectiva geral */
+  cursor: none;
 }
 
 #matrixCanvas {

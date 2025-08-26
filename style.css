@@ -28,6 +28,7 @@ body {
   top: 0px;
   left: 0px;
   z-index: -1;
+  backdrop-filter: blur(0.5px);
 }
 
 #fireworksCanvas {

@@ -177,23 +177,25 @@ function stopHighlightWinner() {
 }
 
 function spin() {
-  starded = 1;
-  const input = document.getElementById('names').value;
-  const spinBtn = document.getElementById('spinBtn');
+  setTimeout(() => {
+	  starded = 1;
+	  const input = document.getElementById('names').value;
+	  const spinBtn = document.getElementById('spinBtn');
 
-  if (input && names.length > 0) {
-	spinSound.play();
-	clearInterval(idleAnimation);
-	idleAnimation = null;
+	  if (input && names.length > 0) {
+		spinSound.play();
+		clearInterval(idleAnimation);
+		idleAnimation = null;
 
-	// desabilita botão enquanto gira
-	spinBtn.disabled = true;
+		// desabilita botão enquanto gira
+		spinBtn.disabled = true;
 
-	spinAngleStart = Math.random() * 10 + 25;
-	spinTime = 0;
-	spinTimeTotal = Math.random() * 5000 + 9000;
-	rotateWheel();
-  }
+		spinAngleStart = Math.random() * 10 + 25;
+		spinTime = 0;
+		spinTimeTotal = Math.random() * 5000 + 9000;
+		rotateWheel();
+	  }
+	}, 1500);
 }
 
 function rotateWheel() {
@@ -345,7 +347,6 @@ function launchRocket(x, y, peakY, colors) {
   startFireworksAnimation();
 }
 
-
 function createExplosion(x, y, colors) {
   const particleCount = 50 + Math.floor(Math.random() * 50);
   for (let i = 0; i < particleCount; i++) {
@@ -449,6 +450,52 @@ style.innerHTML = `
   }
 `;
 document.head.appendChild(style);
+
+// script.js (adicione ao final do arquivo, ou onde concentra seus handlers)
+document.addEventListener('DOMContentLoaded', () => {
+  const boneco  = document.getElementById('boneco');
+  const spinBtn = document.getElementById('spinBtn');
+
+  if (!boneco || !spinBtn) {
+    console.warn('Elemento(s) não encontrado(s): verifique se #boneco e #spinBtn existem no HTML.');
+    return;
+  }
+
+  let animando = false;
+
+  function animarBoneco() {
+    if (animando) return;      // evita múltiplas animações simultâneas
+    animando = true;
+
+    // 1) aparece caminhando
+    boneco.classList.add('ativo');
+
+    // 2) quando chega, empurra a roleta
+    const tempoCaminhada = 1200;   // ms (deve casar com o CSS .boneco.ativo transition)
+    setTimeout(() => {
+      boneco.classList.add('empurrando');
+    }, tempoCaminhada);
+
+    // 3) depois sai caminhando e some
+    const tempoEmpurrao = 3200;    // ~ duas iterações do keyframe 0.8s cada
+    setTimeout(() => {
+      boneco.classList.remove('empurrando');
+      boneco.classList.add('saindo');
+    }, tempoCaminhada + tempoEmpurrao);
+
+    // 4) reset para próxima vez
+    const tempoSaida = 1200;       // deve casar com o CSS .boneco.saindo transition
+    setTimeout(() => {
+      boneco.classList.remove('ativo', 'saindo', 'empurrando');
+      // limpa estilos inline se você os usar em outros trechos
+      animando = false;
+    }, tempoCaminhada + tempoEmpurrao + tempoSaida + 50);
+  }
+
+  // Acople a animação ao botão de girar
+  // Se você já usa onclick="spin()", este listener não atrapalha; ambos executam.
+  spinBtn.addEventListener('click', animarBoneco);
+});
 
 window.onload = () => {
   names = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];

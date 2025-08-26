@@ -414,6 +414,42 @@ function animateIdle() {
   }, 30);
 }
 
+// Extra: rastro estilo matrix
+let trails = [];
+document.addEventListener("mousemove", (e) => {
+  let trail = document.createElement("div");
+  trail.className = "matrix-trail";
+  trail.style.left = e.pageX + "px";
+  trail.style.top = e.pageY + "px";
+  document.body.appendChild(trail);
+
+  setTimeout(() => {
+    trail.remove();
+  }, 500);
+});
+
+// CSS dos rastros adicionados via JS
+const style = document.createElement("style");
+style.innerHTML = `
+  .matrix-trail {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #00ff00;
+    box-shadow: 0 0 8px #00ff00;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    opacity: 0.7;
+    animation: fadeTrail 0.5s linear forwards;
+  }
+  @keyframes fadeTrail {
+    from { opacity: 0.7; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.3); }
+  }
+`;
+document.head.appendChild(style);
+
 window.onload = () => {
   names = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
   colors = generateDistinctColors(names.length);

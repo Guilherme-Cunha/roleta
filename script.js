@@ -18,24 +18,24 @@ let sparkleParticles = [];
 
 function createSparkles() {
   for (let i = 0; i < 20; i++) {
-	sparkleParticles.push({
-	  x: 300 + Math.random() * 600 - 300,
-	  y: 300 + Math.random() * 600 - 300,
-	  radius: Math.random() * 2 + 1,
-	  alpha: Math.random(),
-	  deltaAlpha: 0.02
-	});
+    sparkleParticles.push({
+      x: 300 + Math.random() * 600 - 300,
+      y: 300 + Math.random() * 600 - 300,
+      radius: Math.random() * 2 + 1,
+      alpha: Math.random(),
+      deltaAlpha: 0.02
+    });
   }
 }
 
 function drawSparkles() {
   for (let p of sparkleParticles) {
-	ctx.beginPath();
-	ctx.fillStyle = `rgba(0,255,0,${p.alpha})`;
-	ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-	ctx.fill();
-	p.alpha += p.deltaAlpha;
-	if (p.alpha >= 1 || p.alpha <= 0) p.deltaAlpha *= -1;
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(0,255,0,${p.alpha})`;
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fill();
+    p.alpha += p.deltaAlpha;
+    if (p.alpha >= 1 || p.alpha <= 0) p.deltaAlpha *= -1;
   }
 }
 
@@ -47,12 +47,12 @@ function drawMatrix() {
   ctxBg.font = fontSize + "px monospace";
 
   for (let i = 0; i < drops.length; i++) {
-	const text = letters[Math.floor(Math.random() * letters.length)];
-	ctxBg.fillText(text, i * fontSize, drops[i] * fontSize);
-	if (drops[i] * fontSize > canvasBg.height || Math.random() > 0.975) {
-	  drops[i] = 0;
-	}
-	drops[i]++;
+    const text = letters[Math.floor(Math.random() * letters.length)];
+    ctxBg.fillText(text, i * fontSize, drops[i] * fontSize);
+    if (drops[i] * fontSize > canvasBg.height || Math.random() > 0.975) {
+      drops[i] = 0;
+    }
+    drops[i]++;
   }
 }
 
@@ -76,8 +76,9 @@ const sound = document.getElementById('sound');
 sound.volume = 0.3;
 const spinSound = document.getElementById('spinSound');
 spinSound.volume = 1;
-let names = [];
-let colors = [];
+
+// antes era names[] + colors[], agora é uma lista de objetos {id, name, color}
+let entries = [];
 let startAngle = 0;
 let arc;
 let spinTimeout = null;
@@ -86,46 +87,50 @@ let spinTime = 0;
 let spinTimeTotal = 0;
 let currentWinner = null;
 let idleAnimation = null;
+let blinkInterval = null;
 
 function generateDistinctColors(n) {
   const colors = [];
   const saturation = 70;
   const lightness = 60;
   for (let i = 0; i < n; i++) {
-	const hue = Math.floor((360 / n) * i);
-	colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+    const hue = Math.floor((360 / n) * i);
+    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
   }
   for (let i = colors.length - 1; i > 0; i--) {
-	const j = Math.floor(Math.random() * (i + 1));
-	[colors[i], colors[j]] = [colors[j], colors[i]];
+    const j = Math.floor(Math.random() * (i + 1));
+    [colors[i], colors[j]] = [colors[j], colors[i]];
   }
   return colors;
 }
 
 function setupWheel() {
   const input = document.getElementById('names').value;
-  if (input) {
-	if (starded === 1) {
-		const confirmar = confirm("Deseja realmente gerar a roleta novamente?");
-	  
-		if (!confirmar) {
-		  return; // cancela a geração
-		}
-	}
-	names = input
-	  .split(/[\n,]+/) // separa por vírgula ou quebra de linha
-	  .map(n => n.trim())
-	  .filter(n => n);
-	colors = generateDistinctColors(names.length);
-	arc = Math.PI * 2 / names.length;
-	drawWheel();
+  if (!input) return;
 
-	// mostra botão de girar
-	document.getElementById('spinBtn').style.display = 'block';
+  if (starded === 1) {
+    const confirmar = confirm("Deseja realmente gerar a roleta novamente?");
+    if (!confirmar) return;
   }
+
+  const raw = input
+    .split(/[\n,]+/)
+    .map(n => n.trim())
+    .filter(n => n);
+
+  const colorArr = generateDistinctColors(raw.length);
+  entries = raw.map((n, i) => ({
+    id: `${Date.now()}-${i}-${Math.floor(Math.random() * 100000)}`,
+    name: n,
+    color: colorArr[i]
+  }));
+
+  arc = Math.PI * 2 / entries.length;
+  drawWheel();
+  document.getElementById('spinBtn').style.display = 'block';
 }
 
-function drawWheel(blinkIndex = -1, visible = true) {
+function drawWheel(blinkId = null, visible = true) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.shadowColor = "rgba(0,255,0,0.5)";
@@ -133,76 +138,54 @@ function drawWheel(blinkIndex = -1, visible = true) {
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
 
-  for (let i = 0; i < names.length; i++) {
-	const angle = startAngle + i * arc;
-	ctx.fillStyle = colors[i];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    const angle = startAngle + i * arc;
 
-	if (i === blinkIndex && !visible) ctx.fillStyle = '#000';
+    ctx.fillStyle = (blinkId && entry.id === blinkId && !visible) ? '#000' : entry.color;
 
-	ctx.beginPath();
-	ctx.moveTo(300, 300);
-	ctx.arc(300, 300, 300, angle, angle + arc, false);
-	ctx.lineTo(300, 300);
-	ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(300, 300);
+    ctx.arc(300, 300, 300, angle, angle + arc, false);
+    ctx.lineTo(300, 300);
+    ctx.fill();
 
-	ctx.save();
-	ctx.fillStyle = '#000';
-	ctx.font = 'bold 18px Arial';
-	ctx.translate(
-	  300 + Math.cos(angle + arc / 2) * 180,
-	  300 + Math.sin(angle + arc / 2) * 180
-	);
-	ctx.rotate(angle + arc / 2);
-	ctx.fillText(names[i], -ctx.measureText(names[i]).width / 2, 0);
-	ctx.restore();
+    ctx.save();
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 18px Arial';
+    ctx.translate(
+      300 + Math.cos(angle + arc / 2) * 180,
+      300 + Math.sin(angle + arc / 2) * 180
+    );
+    ctx.rotate(angle + arc / 2);
+    ctx.fillText(entry.name, -ctx.measureText(entry.name).width / 2, 0);
+    ctx.restore();
   }
-
-  ctx.shadowBlur = 0; // reset
-}
-
-let highlightInterval = null;
-
-function startHighlightWinner(index) {
-  let highlight = false;
-  highlightInterval = setInterval(() => {
-	highlight = !highlight;
-	drawWheel(index, highlight);
-  }, 300); // alterna a cada 300ms
-}
-
-function stopHighlightWinner() {
-  clearInterval(highlightInterval);
-  highlightInterval = null;
-  drawWheel(); // redesenha sem destaque
+  ctx.shadowBlur = 0;
 }
 
 function spin() {
   setTimeout(() => {
-	  starded = 1;
-	  const input = document.getElementById('names').value;
-	  const spinBtn = document.getElementById('spinBtn');
-
-	  if (input && names.length > 0) {
-		spinSound.play();
-		clearInterval(idleAnimation);
-		idleAnimation = null;
-
-		// desabilita botão enquanto gira
-		spinBtn.disabled = true;
-
-		spinAngleStart = Math.random() * 10 + 25;
-		spinTime = 0;
-		spinTimeTotal = Math.random() * 5000 + 9000;
-		rotateWheel();
-	  }
-	}, 1500);
+    starded = 1;
+    const spinBtn = document.getElementById('spinBtn');
+    if (entries.length > 0) {
+      spinSound.play();
+      clearInterval(idleAnimation);
+      idleAnimation = null;
+      spinBtn.disabled = true;
+      spinAngleStart = Math.random() * 10 + 25;
+      spinTime = 0;
+      spinTimeTotal = Math.random() * 5000 + 9000;
+      rotateWheel();
+    }
+  }, 1500);
 }
 
 function rotateWheel() {
   spinTime += 30;
   if (spinTime >= spinTimeTotal) {
-	stopRotateWheel();
-	return;
+    stopRotateWheel();
+    return;
   }
   const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
   startAngle += (spinAngle * Math.PI) / 180;
@@ -214,77 +197,68 @@ function stopRotateWheel() {
   clearTimeout(spinTimeout);
   spinSound.pause();
   spinSound.currentTime = 0;
+
   const degrees = (startAngle * 180) / Math.PI + 90;
   const arcd = (arc * 180) / Math.PI;
-  const index = Math.floor((360 - (degrees % 360)) / arcd);
-  currentWinner = names[index];
-  showWinner(currentWinner);
+  let index = Math.floor((360 - (degrees % 360)) / arcd);
+  index = ((index % entries.length) + entries.length) % entries.length;
+
+  const winnerEntry = entries[index];
+  currentWinner = winnerEntry;
+  showWinner(winnerEntry);
 }
 
 function easeOut(t, b, c, d) {
   return c * ((t = t / d - 1) * t * t + 1) + b;
 }
 
-let blinkInterval = null; // variável global
-
-function showWinner(name) {
+function showWinner(entry) {
   sound.play();
-  fireworks(); // chama fogos de artifício
-
-  document.getElementById('winner').innerHTML = `<strong>${name}</strong>`;
+  fireworks();
+  document.getElementById('winner').innerHTML = `<strong>${entry.name}</strong>`;
   document.getElementById('modal').style.display = 'flex';
 
-  // Limpa intervalo anterior de piscar, se existir
   if (blinkInterval) {
-	clearInterval(blinkInterval);
-	blinkInterval = null;
-	drawWheel(); // garante que a roleta volte ao normal
+    clearInterval(blinkInterval);
+    blinkInterval = null;
+    drawWheel();
   }
 
-  // Descobre índice da fatia vencedora
-  const winnerIndex = names.indexOf(name);
+  const winnerId = entry.id;
   let visible = true;
 
-  // Inicia piscar da fatia
   blinkInterval = setInterval(() => {
-	visible = !visible;
-	drawWheel(winnerIndex, visible); // passamos índice da fatia que pisca
+    visible = !visible;
+    drawWheel(winnerId, visible);
   }, 300);
 
   document.getElementById('okBtn').onclick = () => {
-	// limpa intervalo ao fechar modal
-	clearInterval(blinkInterval);
-	blinkInterval = null;
+    clearInterval(blinkInterval);
+    blinkInterval = null;
+    entries = entries.filter(e => e.id !== winnerId);
 
-	const idx = names.indexOf(name);
-	names.splice(idx, 1);
-
-	if (names.length > 0) {
-	  arc = Math.PI * 2 / names.length;
-	}
-	startAngle = 0;
-	document.getElementById('modal').style.display = 'none';
-
-	drawWheel();
-	animateIdle();
-
-	// reabilita botão de girar
-	document.getElementById('spinBtn').disabled = false;
+    if (entries.length > 0) {
+      arc = Math.PI * 2 / entries.length;
+    }
+    startAngle = 0;
+    document.getElementById('modal').style.display = 'none';
+    drawWheel();
+    animateIdle();
+    document.getElementById('spinBtn').disabled = false;
   };
 }
 
 function fireworks() {
   const colors = generateDistinctColors(10);
-  const numRockets = 15; // quantos fogos vão subir
+  const numRockets = 15;
   const delay = 300;
-
   for (let i = 0; i < numRockets; i++) {
-	setTimeout(() => {
-	  const startX = Math.random() * fwCanvas.width * 0.8 + fwCanvas.width * 0.1;
-	  const startY = fwCanvas.height + 10; // começa abaixo da tela
-	  const peakY = Math.random() * fwCanvas.height * 0.4 + fwCanvas.height * 0.1; // altura da explosão
-	  launchRocket(startX, startY, peakY, colors);
-	}, i * delay);
+    setTimeout(() => {
+      const startX = Math.random() * fwCanvas.width * 0.8 + fwCanvas.width * 0.1;
+      const startY = fwCanvas.height + 10;
+      const peakY = Math.random() * fwCanvas.height * 0.4 + fwCanvas.height * 0.1;
+      launchRocket(startX, startY, peakY, colors);
+    }, i * delay);
   }
 }
 
@@ -497,10 +471,12 @@ document.addEventListener('DOMContentLoaded', () => {
   spinBtn.addEventListener('click', animarBoneco);
 });
 
+// Inicialização
 window.onload = () => {
-  names = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
-  colors = generateDistinctColors(names.length);
-  arc = Math.PI * 2 / names.length;
+  const defaultNames = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
+  const colorArr = generateDistinctColors(defaultNames.length);
+  entries = defaultNames.map((n, i) => ({ id: `init-${i}`, name: n, color: colorArr[i] }));
+  arc = Math.PI * 2 / entries.length;
   drawWheel();
   animateIdle();
 };

@@ -9,6 +9,20 @@ body {
   cursor: none;
 }
 
+/* Cursor matrix */
+#matrix-cursor {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, #00ff00 20%, transparent 70%);
+  box-shadow: 0 0 15px #00ff00, 0 0 25px #00ff00;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  transition: transform 0.08s linear;
+}
+
 #matrixCanvas {
   position: fixed;
   top: 0px;
@@ -33,7 +47,7 @@ body {
   justify-content: center;
   width: 100%;
   height: 100vh;
-  backdrop-filter: blur(0.5px);
+  backdrop-filter: blur(2px);
   perspective: 1000px;
 }
 
@@ -75,6 +89,49 @@ button {
   font-weight: bold;
 }
 
+/* O contêiner da roleta precisa ser relativo para posicionar o boneco */
+.wheel-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Boneco começa fora da área visível à esquerda */
+.boneco {
+  position: absolute;
+  left: -140px;      /* fora do contêiner */
+  bottom: 10px;      /* ajuste conforme a base da sua roleta */
+  width: 90px;
+  height: 180px;
+  opacity: 0;
+  pointer-events: none; /* não intercepta cliques */
+  transform: translateX(0);
+  transition: transform 1.2s ease, opacity 0.8s ease;
+  z-index: 12;       /* acima da roleta; abaixo de modal se houver */
+}
+
+/* Caminhar até a roleta (distância típica para um canvas 500x500) */
+.boneco.ativo {
+  opacity: 1;
+  transform: translateX(260px);
+}
+
+/* Sair caminhando para a direita e desvanecendo */
+.boneco.saindo {
+  opacity: 0;
+  transform: translateX(520px);
+}
+
+/* Animação de empurrar (balanço do braço direito) */
+@keyframes empurrar {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(-40deg); }
+}
+
+.boneco.empurrando #braco {
+  transform-origin: 50px 70px;
+  animation: empurrar 0.8s ease-in-out 6;
+}
+
 #wheelContainer {
   position: relative;
 }
@@ -95,6 +152,7 @@ canvas {
   border-radius: 15px;
   font-size: 1.2em;
   cursor: pointer;
+  margin-top: 20px;
 }
 
 #pointer {
@@ -128,20 +186,6 @@ canvas {
   border-radius: 15px;
   text-align: center;
   color: #000;
-}
-
-/* Cursor matrix */
-#matrix-cursor {
-  position: fixed;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(circle, #00ff00 20%, transparent 70%);
-  box-shadow: 0 0 15px #00ff00, 0 0 25px #00ff00;
-  transform: translate(-50%, -50%);
-  z-index: 9999;
-  transition: transform 0.08s linear;
 }
 
 #modalContent strong {

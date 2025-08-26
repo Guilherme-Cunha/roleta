@@ -103,7 +103,7 @@ canvas {
   border-bottom: 20px solid transparent;
   border-left: 30px solid red;
   position: absolute;
-  top: -15px;
+  top: -14px;
   right: 48%;
   transform: rotate(90deg);
 }

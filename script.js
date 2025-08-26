@@ -1,0 +1,423 @@
+let starded = 0;
+// MATRIX BACKGROUND
+const canvasBg = document.getElementById("matrixCanvas");
+const ctxBg = canvasBg.getContext("2d");
+
+let allParticles = []; // todas as partículas de todos os foguetes
+let fireworksAnimation = null;
+
+canvasBg.height = window.innerHeight;
+canvasBg.width = window.innerWidth;
+
+const letters = "アイウエオカキクケコサシスセソタチツテトナニヌネノ".split("");
+const fontSize = 14;
+const columns = canvasBg.width / fontSize;
+const drops = Array(Math.floor(columns)).fill(1);
+
+let sparkleParticles = [];
+
+function createSparkles() {
+  for (let i = 0; i < 20; i++) {
+	sparkleParticles.push({
+	  x: 300 + Math.random() * 600 - 300,
+	  y: 300 + Math.random() * 600 - 300,
+	  radius: Math.random() * 2 + 1,
+	  alpha: Math.random(),
+	  deltaAlpha: 0.02
+	});
+  }
+}
+
+function drawSparkles() {
+  for (let p of sparkleParticles) {
+	ctx.beginPath();
+	ctx.fillStyle = `rgba(0,255,0,${p.alpha})`;
+	ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+	ctx.fill();
+	p.alpha += p.deltaAlpha;
+	if (p.alpha >= 1 || p.alpha <= 0) p.deltaAlpha *= -1;
+  }
+}
+
+function drawMatrix() {
+  ctxBg.fillStyle = "rgba(0, 0, 0, 0.05)";
+  ctxBg.fillRect(0, 0, canvasBg.width, canvasBg.height);
+
+  ctxBg.fillStyle = "#0F0";
+  ctxBg.font = fontSize + "px monospace";
+
+  for (let i = 0; i < drops.length; i++) {
+	const text = letters[Math.floor(Math.random() * letters.length)];
+	ctxBg.fillText(text, i * fontSize, drops[i] * fontSize);
+	if (drops[i] * fontSize > canvasBg.height || Math.random() > 0.975) {
+	  drops[i] = 0;
+	}
+	drops[i]++;
+  }
+}
+
+setInterval(drawMatrix, 50);
+
+const fwCanvas = document.getElementById('fireworksCanvas');
+const fwCtx = fwCanvas.getContext('2d');
+fwCanvas.width = window.innerWidth;
+fwCanvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+  fwCanvas.width = window.innerWidth;
+  fwCanvas.height = window.innerHeight;
+});
+
+
+// ROLETAS
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+const sound = document.getElementById('sound');
+sound.volume = 0.3;
+const spinSound = document.getElementById('spinSound');
+spinSound.volume = 1;
+let names = [];
+let colors = [];
+let startAngle = 0;
+let arc;
+let spinTimeout = null;
+let spinAngleStart = 0;
+let spinTime = 0;
+let spinTimeTotal = 0;
+let currentWinner = null;
+let idleAnimation = null;
+
+function generateDistinctColors(n) {
+  const colors = [];
+  const saturation = 70;
+  const lightness = 60;
+  for (let i = 0; i < n; i++) {
+	const hue = Math.floor((360 / n) * i);
+	colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+  }
+  for (let i = colors.length - 1; i > 0; i--) {
+	const j = Math.floor(Math.random() * (i + 1));
+	[colors[i], colors[j]] = [colors[j], colors[i]];
+  }
+  return colors;
+}
+
+function setupWheel() {
+  const input = document.getElementById('names').value;
+  if (input) {
+	if (starded === 1) {
+		const confirmar = confirm("Deseja realmente gerar a roleta novamente?");
+	  
+		if (!confirmar) {
+		  return; // cancela a geração
+		}
+	}
+	names = input
+	  .split(/[\n,]+/) // separa por vírgula ou quebra de linha
+	  .map(n => n.trim())
+	  .filter(n => n);
+	colors = generateDistinctColors(names.length);
+	arc = Math.PI * 2 / names.length;
+	drawWheel();
+
+	// mostra botão de girar
+	document.getElementById('spinBtn').style.display = 'block';
+  }
+}
+
+function drawWheel(blinkIndex = -1, visible = true) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.shadowColor = "rgba(0,255,0,0.5)";
+  ctx.shadowBlur = 15;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+
+  for (let i = 0; i < names.length; i++) {
+	const angle = startAngle + i * arc;
+	ctx.fillStyle = colors[i];
+
+	if (i === blinkIndex && !visible) ctx.fillStyle = '#000';
+
+	ctx.beginPath();
+	ctx.moveTo(300, 300);
+	ctx.arc(300, 300, 300, angle, angle + arc, false);
+	ctx.lineTo(300, 300);
+	ctx.fill();
+
+	ctx.save();
+	ctx.fillStyle = '#000';
+	ctx.font = 'bold 18px Arial';
+	ctx.translate(
+	  300 + Math.cos(angle + arc / 2) * 180,
+	  300 + Math.sin(angle + arc / 2) * 180
+	);
+	ctx.rotate(angle + arc / 2);
+	ctx.fillText(names[i], -ctx.measureText(names[i]).width / 2, 0);
+	ctx.restore();
+  }
+
+  ctx.shadowBlur = 0; // reset
+}
+
+let highlightInterval = null;
+
+function startHighlightWinner(index) {
+  let highlight = false;
+  highlightInterval = setInterval(() => {
+	highlight = !highlight;
+	drawWheel(index, highlight);
+  }, 300); // alterna a cada 300ms
+}
+
+function stopHighlightWinner() {
+  clearInterval(highlightInterval);
+  highlightInterval = null;
+  drawWheel(); // redesenha sem destaque
+}
+
+function spin() {
+  starded = 1;
+  const input = document.getElementById('names').value;
+  const spinBtn = document.getElementById('spinBtn');
+
+  if (input && names.length > 0) {
+	spinSound.play();
+	clearInterval(idleAnimation);
+	idleAnimation = null;
+
+	// desabilita botão enquanto gira
+	spinBtn.disabled = true;
+
+	spinAngleStart = Math.random() * 10 + 25;
+	spinTime = 0;
+	spinTimeTotal = Math.random() * 5000 + 9000;
+	rotateWheel();
+  }
+}
+
+function rotateWheel() {
+  spinTime += 30;
+  if (spinTime >= spinTimeTotal) {
+	stopRotateWheel();
+	return;
+  }
+  const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+  startAngle += (spinAngle * Math.PI) / 180;
+  drawWheel();
+  spinTimeout = setTimeout(rotateWheel, 30);
+}
+
+function stopRotateWheel() {
+  clearTimeout(spinTimeout);
+  spinSound.pause();
+  spinSound.currentTime = 0;
+  const degrees = (startAngle * 180) / Math.PI + 90;
+  const arcd = (arc * 180) / Math.PI;
+  const index = Math.floor((360 - (degrees % 360)) / arcd);
+  currentWinner = names[index];
+  showWinner(currentWinner);
+}
+
+function easeOut(t, b, c, d) {
+  return c * ((t = t / d - 1) * t * t + 1) + b;
+}
+
+let blinkInterval = null; // variável global
+
+function showWinner(name) {
+  sound.play();
+  fireworks(); // chama fogos de artifício
+
+  document.getElementById('winner').innerHTML = `<strong>${name}</strong>`;
+  document.getElementById('modal').style.display = 'flex';
+
+  // Limpa intervalo anterior de piscar, se existir
+  if (blinkInterval) {
+	clearInterval(blinkInterval);
+	blinkInterval = null;
+	drawWheel(); // garante que a roleta volte ao normal
+  }
+
+  // Descobre índice da fatia vencedora
+  const winnerIndex = names.indexOf(name);
+  let visible = true;
+
+  // Inicia piscar da fatia
+  blinkInterval = setInterval(() => {
+	visible = !visible;
+	drawWheel(winnerIndex, visible); // passamos índice da fatia que pisca
+  }, 300);
+
+  document.getElementById('okBtn').onclick = () => {
+	// limpa intervalo ao fechar modal
+	clearInterval(blinkInterval);
+	blinkInterval = null;
+
+	const idx = names.indexOf(name);
+	names.splice(idx, 1);
+
+	if (names.length > 0) {
+	  arc = Math.PI * 2 / names.length;
+	}
+	startAngle = 0;
+	document.getElementById('modal').style.display = 'none';
+
+	drawWheel();
+	animateIdle();
+
+	// reabilita botão de girar
+	document.getElementById('spinBtn').disabled = false;
+  };
+}
+
+function fireworks() {
+  const colors = generateDistinctColors(10);
+  const numRockets = 15; // quantos fogos vão subir
+  const delay = 300;
+
+  for (let i = 0; i < numRockets; i++) {
+	setTimeout(() => {
+	  const startX = Math.random() * fwCanvas.width * 0.8 + fwCanvas.width * 0.1;
+	  const startY = fwCanvas.height + 10; // começa abaixo da tela
+	  const peakY = Math.random() * fwCanvas.height * 0.4 + fwCanvas.height * 0.1; // altura da explosão
+	  launchRocket(startX, startY, peakY, colors);
+	}, i * delay);
+  }
+}
+
+function launchRocket(x, y, peakY, colors) {
+  const rocketColor = colors[Math.floor(Math.random() * colors.length)];
+  const rocket = { 
+	x, 
+	y, 
+	peakY, 
+	exploded: false, 
+	color: rocketColor,
+	radius: 2 + Math.random() * 2, // tamanho inicial
+	sway: Math.random() * 2 + 1,   // amplitude horizontal
+	swayDir: Math.random() < 0.5 ? -1 : 1 // direção inicial da oscilação
+  };
+
+  const rocketSound = document.getElementById('rocketSound');
+  rocketSound.volume = 0.8;
+  rocketSound.currentTime = 0;
+  rocketSound.play();
+
+  const rocketInterval = setInterval(() => {
+	if (!rocket.exploded) {
+	  // sobe verticalmente
+	  rocket.y += -4 - Math.random() * 4;
+
+	  // oscila horizontalmente
+	  rocket.x += rocket.swayDir * Math.random() * 1.5;
+	  // inverte direção se passar limite da amplitude
+	  if (Math.abs(rocket.x - x) > rocket.sway) rocket.swayDir *= -1;
+
+	  // aumenta ou diminui o raio do foguete para parecer que se aproxima ou afasta
+	  rocket.radius = 1 + Math.sin((rocket.y / peakY) * Math.PI) * 3;
+
+	  // explode no topo
+	  if (rocket.y <= rocket.peakY) {
+		rocket.exploded = true;
+		createExplosion(rocket.x, rocket.y, colors);
+
+		const explosionSound = document.getElementById('explosionSound');
+		explosionSound.volume = 0.5;
+		explosionSound.currentTime = 0;
+		explosionSound.play();
+
+		clearInterval(rocketInterval);
+	  } else {
+		allParticles.push({
+		  x: rocket.x,
+		  y: rocket.y,
+		  vx: 0,
+		  vy: 0,
+		  color: rocket.color,
+		  life: 10,
+		  radius: 2
+		});
+	  }
+	}
+  }, 30);
+
+  startFireworksAnimation();
+}
+
+
+function createExplosion(x, y, colors) {
+  const particleCount = 50 + Math.floor(Math.random() * 50);
+  for (let i = 0; i < particleCount; i++) {
+	const angle = Math.random() * 2 * Math.PI;
+	const speed = Math.random() * 5 + 2;
+	const color = colors[Math.floor(Math.random() * colors.length)];
+	allParticles.push({
+	  x: x,
+	  y: y,
+	  vx: Math.cos(angle) * speed,
+	  vy: Math.sin(angle) * speed,
+	  color: color,
+	  life: 50 + Math.random() * 30,   // vida da partícula
+	  radius: 2 + Math.random() * 3,   // tamanho inicial
+	  shrink: 0.05 + Math.random() * 0.05,  // taxa de encolhimento
+	  fade: 0.02 + Math.random() * 0.02     // taxa de transparência
+	});
+  }
+}
+
+function getRandomIntInclusive(min, max) {
+  min = Math.ceil(min); // Garante que o valor mínimo seja um inteiro
+  max = Math.floor(max); // Garante que o valor máximo seja um inteiro
+  return Math.floor(Math.random() * (max - min + 1)) + min; // O número gerado é [min, max]
+}
+
+function startFireworksAnimation() {
+  if (fireworksAnimation) return; // já rodando
+  fireworksAnimation = setInterval(() => {
+	fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+
+	for (let i = allParticles.length - 1; i >= 0; i--) {
+	  let numeroAleatorio = getRandomIntInclusive(1, 10);
+	  const p = allParticles[i];
+	  fwCtx.beginPath();
+	  fwCtx.fillStyle = p.color;
+	  fwCtx.arc(p.x, p.y, numeroAleatorio, 0, Math.PI*2);
+	  fwCtx.fill();
+
+	  p.x += p.vx;
+	  p.y += p.vy;
+	  p.vy += 0.05; // gravidade leve
+	  p.life--;
+
+	  if (p.life <= 0) {
+		allParticles.splice(i, 1);
+	  }
+	}
+
+	// Para o loop se não houver partículas
+	if (allParticles.length === 0) {
+	  clearInterval(fireworksAnimation);
+	  fireworksAnimation = null;
+	  fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+	}
+  }, 30);
+}
+
+function animateIdle() {
+  if (idleAnimation) return;
+  idleAnimation = setInterval(() => {
+	startAngle += 0.002;
+	canvas.style.transform = `rotateY(${Math.sin(startAngle) * 5}deg) rotateX(${Math.cos(startAngle) * 5}deg)`;
+	drawWheel();
+	drawSparkles();
+  }, 30);
+}
+
+window.onload = () => {
+  names = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
+  colors = generateDistinctColors(names.length);
+  arc = Math.PI * 2 / names.length;
+  drawWheel();
+  animateIdle();
+};

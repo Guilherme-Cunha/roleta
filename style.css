@@ -1,0 +1,163 @@
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background: black;
+  color: white;
+  perspective: 1200px; /* perspectiva geral */
+}
+
+#matrixCanvas {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  z-index: -1;
+}
+
+#fireworksCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* não interfere nos cliques */
+  z-index: 10; /* acima da roleta */
+}
+
+.container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100vh;
+  backdrop-filter: blur(2px);
+  perspective: 1000px;
+}
+
+.container > * {
+  transform: rotateY(5deg) rotateX(2deg);
+  box-shadow: 0 20px 40px rgba(0, 255, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 20px;
+  border-radius: 15px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#inputArea {
+  margin-right: 20px;
+  text-align: center;
+}
+
+textarea {
+  width: 250px;       /* largura fixa */
+  height: 450px;      /* altura fixa */
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 1em;
+  background: #111;
+  color: #0f0;
+  border: 1px solid #0f0;
+  resize: none;       /* desabilita redimensionamento pelo usuário */
+}
+
+button {
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 1em;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background-color: #0f0;
+  color: #000;
+  font-weight: bold;
+}
+
+#wheelContainer {
+  position: relative;
+}
+
+canvas {
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+}
+
+#spinBtn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 15px 30px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border: none;
+  border-radius: 15px;
+  font-size: 1.2em;
+  cursor: pointer;
+}
+
+#pointer {
+  width: 0;
+  height: 0;
+  border-top: 20px solid transparent;
+  border-bottom: 20px solid transparent;
+  border-left: 30px solid red;
+  position: absolute;
+  top: -15px;
+  right: 48%;
+  transform: rotate(90deg);
+}
+
+#modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  display: none;
+}
+
+#modalContent {
+  background: #fff;
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  color: #000;
+}
+
+#modalContent strong {
+  font-size: 2em;
+}
+
+#okBtn {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+#okBtn:hover {
+  transform: translateZ(20px) rotateX(3deg) rotateY(3deg);
+  box-shadow: 0 25px 50px rgba(0, 255, 0, 0.7);
+  background: linear-gradient(45deg, #0f0, #0ff);
+}
+
+
+@keyframes fall {
+  to {
+	transform: translateY(100vh) rotate(360deg);
+	opacity: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+	flex-direction: column;
+  }
+
+  #inputArea {
+	margin-right: 0;
+	margin-bottom: 20px;
+  }
+}

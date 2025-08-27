@@ -444,8 +444,11 @@ document.head.appendChild(style);
 
 // script.js (adicione ao final do arquivo, ou onde concentra seus handlers)
 document.addEventListener('DOMContentLoaded', () => {
+	const spinBtn = document.getElementById('spinBtn');
     const boneco = document.getElementById('boneco');
     const spinBtn = document.getElementById('spinBtn');
+
+	spinBtn.disabled = true;
 
     if (!boneco || !spinBtn) {
         console.warn('Elemento(s) não encontrado(s): verifique se #boneco e #spinBtn existem no HTML.');

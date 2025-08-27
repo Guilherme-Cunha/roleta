@@ -455,8 +455,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let animando = false;
 
   function animarBoneco() {
-    if (animando) return;      // evita múltiplas animações simultâneas
-    animando = true;
+	if (entries.length > 0) return;
+    if (animando) return;
+	
+	animando = true;
 
     // 1) aparece caminhando
     boneco.classList.add('ativo');

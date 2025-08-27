@@ -9,6 +9,41 @@ body {
   cursor: none;
 }
 
+/* Botão de engrenagem */
+.gear-btn {
+  font-size: 18px;
+  padding: 5px 10px;
+}
+
+/* Estilos da modal */
+.modal {
+  display: none; 
+  position: fixed; 
+  z-index: 1000; 
+  left: 0;
+  top: 0;
+  width: 100%; 
+  height: 100%;
+  cursor:default;
+}
+
+.modal-content {
+  background-color: #111;
+  opacity: 90%;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 8px;
+  width: 300px;
+  text-align: center;
+}
+
+.close {
+  color: #333;
+  float: right;
+  font-size: 24px;
+  cursor: pointer;
+}
+
 /* Cursor matrix */
 #matrix-cursor {
   position: fixed;
@@ -28,6 +63,9 @@ body {
   top: 0px;
   left: 0px;
   z-index: -1;
+  width: 100%;
+  height: 100vh;
+  justify-content: center;
   backdrop-filter: blur(0.5px);
 }
 
@@ -48,7 +86,7 @@ body {
   justify-content: center;
   width: 100%;
   height: 100vh;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(0.5px);
   perspective: 1000px;
 }
 

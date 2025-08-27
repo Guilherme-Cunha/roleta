@@ -526,6 +526,10 @@ numericInputs.forEach(input => {
     });
 });
 
+document.addEventListener('contextmenu', function (e) {
+	e.preventDefault();
+});
+
 // Inicialização
 window.onload = () => {
     localStorage.setItem("fireworksCount", 5);

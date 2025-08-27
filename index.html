@@ -25,20 +25,20 @@
       <canvas id="wheel" width="600" height="600"></canvas>
       <button id="spinBtn" onclick="spin()" style="display:none;">Clique para Girar</button>
 	  <!-- BONEQUINHO (palitinho em SVG) -->
-	  <div class="boneco" id="boneco" aria-hidden="true">
-		<svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
-		  <!-- cabeça -->
-		  <circle cx="50" cy="30" r="20" stroke="white" stroke-width="4" fill="none"/>
-		  <!-- corpo -->
-		  <line x1="50" y1="50" x2="50" y2="120" stroke="white" stroke-width="4"/>
-		  <!-- braços -->
-		  <line x1="50" y1="70" x2="20" y2="90" stroke="white" stroke-width="4"/>
-		  <line id="braco" x1="50" y1="70" x2="80" y2="90" stroke="white" stroke-width="4"/>
-		  <!-- pernas -->
-		  <line x1="50" y1="120" x2="20" y2="170" stroke="white" stroke-width="4"/>
-		  <line x1="50" y1="120" x2="80" y2="170" stroke="white" stroke-width="4"/>
-		</svg>
-	  </div>
+	<div class="boneco" id="boneco" aria-hidden="true">
+	  <svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
+		<!-- cabeça -->
+		<circle cx="50" cy="30" r="20" stroke="white" stroke-width="4" fill="none"/>
+		<!-- corpo -->
+		<line x1="50" y1="50" x2="50" y2="120" stroke="white" stroke-width="4"/>
+		<!-- braços -->
+		<line x1="50" y1="70" x2="20" y2="90" stroke="white" stroke-width="4"/>
+		<line id="braco" x1="50" y1="70" x2="80" y2="90" stroke="white" stroke-width="4"/>
+		<!-- pernas -->
+		<line id="perna-esquerda" x1="50" y1="120" x2="20" y2="170" stroke="white" stroke-width="4"/>
+		<line id="perna-direita" x1="50" y1="120" x2="80" y2="170" stroke="white" stroke-width="4"/>
+	  </svg>
+	</div>
       <div id="pointer"></div>
     </div>
   </div>

@@ -455,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let animando = false;
 
   function animarBoneco() {
-	if (entries.length > 0) return;
+	if (entries.length < 0) return;
     if (animando) return;
 	
 	animando = true;

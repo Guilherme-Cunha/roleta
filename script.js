@@ -9,7 +9,7 @@ let fireworksAnimation = null;
 canvasBg.height = window.innerHeight;
 canvasBg.width = window.innerWidth;
 
-const letters = "アイウエオカキクケコサシスセソタチツテトナニヌネノ".split("");
+const letters = "イエス・キリストは昨日も今日も永遠に同じである".split("");
 const fontSize = 14;
 const columns = canvasBg.width / fontSize;
 const drops = Array(Math.floor(columns)).fill(1);

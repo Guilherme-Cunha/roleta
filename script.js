@@ -293,7 +293,7 @@ function launchRocket(x, y, peakY, colors) {
     };
 
     const rocketSound = document.getElementById('rocketSound');
-    rocketSound.volume = 0.3;
+    rocketSound.volume = 0.1;
     rocketSound.currentTime = 0;
     rocketSound.play();
 

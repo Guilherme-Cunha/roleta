@@ -265,8 +265,8 @@ function showWinner(entry) {
 function fireworks() {
   const colors = generateDistinctColors(10);
 
-  // Pega configuração do localStorage ou usa 15 como padrão
-  const numRockets = parseInt(localStorage.getItem("fireworksCount")) || 15;
+  // Pega configuração do localStorage ou usa 5 como padrão
+  const numRockets = parseInt(localStorage.getItem("fireworksCount")) || 5;
 
   const delay = 300;
   for (let i = 0; i < numRockets; i++) {

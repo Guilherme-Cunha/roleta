@@ -68,7 +68,6 @@ window.addEventListener('resize', () => {
   fwCanvas.height = window.innerHeight;
 });
 
-
 // ROLETAS
 const canvas = document.getElementById('wheel');
 const ctx = canvas.getContext('2d');
@@ -77,7 +76,6 @@ sound.volume = 0.3;
 const spinSound = document.getElementById('spinSound');
 spinSound.volume = 1;
 
-// antes era names[] + colors[], agora é uma lista de objetos {id, name, color}
 let entries = [];
 let startAngle = 0;
 let arc;
@@ -169,28 +167,44 @@ function spin() {
     starded = 1;
     const spinBtn = document.getElementById('spinBtn');
     if (entries.length > 0) {
-      spinSound.play();
       clearInterval(idleAnimation);
       idleAnimation = null;
       spinBtn.disabled = true;
       spinAngleStart = Math.random() * 10 + 25;
       spinTime = 0;
-      spinTimeTotal = Math.random() * 5000 + 9000;
+
+      const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;
+      spinTimeTotal = configuredTime;
+
       rotateWheel();
     }
   }, 1500);
 }
 
+let lastTickAngle = 0; // nova variável global para controlar ticks
+
 function rotateWheel() {
-  spinTime += 30;
-  if (spinTime >= spinTimeTotal) {
-    stopRotateWheel();
-    return;
-  }
-  const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
-  startAngle += (spinAngle * Math.PI) / 180;
-  drawWheel();
-  spinTimeout = setTimeout(rotateWheel, 30);
+    spinTime += 30;
+    if (spinTime >= spinTimeTotal) {
+        stopRotateWheel();
+        return;
+    }
+
+    const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+    startAngle += (spinAngle * Math.PI) / 180;
+
+    // calcula quantas fatias foram cruzadas
+    const crossedSlices = Math.floor(startAngle / arc) - Math.floor(lastTickAngle / arc);
+
+    if (crossedSlices !== 0) {
+        spinSound.currentTime = 0;
+        spinSound.volume = 0.5;
+        spinSound.play();
+        lastTickAngle = startAngle; // atualiza a referência
+    }
+
+    drawWheel();
+    spinTimeout = setTimeout(rotateWheel, 30);
 }
 
 function stopRotateWheel() {
@@ -250,7 +264,10 @@ function showWinner(entry) {
 
 function fireworks() {
   const colors = generateDistinctColors(10);
-  const numRockets = 15;
+
+  // Pega configuração do localStorage ou usa 15 como padrão
+  const numRockets = parseInt(localStorage.getItem("fireworksCount")) || 15;
+
   const delay = 300;
   for (let i = 0; i < numRockets; i++) {
     setTimeout(() => {
@@ -471,12 +488,45 @@ document.addEventListener('DOMContentLoaded', () => {
   spinBtn.addEventListener('click', animarBoneco);
 });
 
+// Abrir e fechar modal
+const modal = document.getElementById("configModal");
+const btnOpen = document.getElementById("openConfig");
+const btnClose = document.getElementById("closeModal");
+const btnSave = document.getElementById("saveConfig");
+
+btnOpen.onclick = () => modal.style.display = "block";
+btnClose.onclick = () => modal.style.display = "none";
+
+window.onclick = function(event) {
+  if (event.target === modal) {
+    modal.style.display = "none";
+  }
+};
+
+btnSave.onclick = () => {
+  const fireworksCount = document.getElementById("fireworksCount").value;
+  const spinTime = document.getElementById("spinTime").value;
+
+  localStorage.setItem("fireworksCount", fireworksCount);
+  localStorage.setItem("spinTime", spinTime);
+
+  alert("Configurações salvas!");
+  modal.style.display = "none";
+};
+
 // Inicialização
 window.onload = () => {
-  const defaultNames = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
-  const colorArr = generateDistinctColors(defaultNames.length);
-  entries = defaultNames.map((n, i) => ({ id: `init-${i}`, name: n, color: colorArr[i] }));
-  arc = Math.PI * 2 / entries.length;
-  drawWheel();
-  animateIdle();
+	if (!localStorage.getItem("fireworksCount")) {
+		localStorage.setItem("fireworksCount", 5);
+	}
+	if (!localStorage.getItem("spinTime")) {
+		localStorage.setItem("spinTime", 10000);
+	}
+
+	const defaultNames = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
+	const colorArr = generateDistinctColors(defaultNames.length);
+	entries = defaultNames.map((n, i) => ({ id: `init-${i}`, name: n, color: colorArr[i] }));
+	arc = Math.PI * 2 / entries.length;
+	drawWheel();
+	animateIdle();
 };

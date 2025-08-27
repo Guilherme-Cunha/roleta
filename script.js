@@ -514,6 +514,15 @@ btnSave.onclick = () => {
   modal.style.display = "none";
 };
 
+const numericInputs = document.querySelectorAll('#fireworksCount, #spinTime');
+
+numericInputs.forEach(input => {
+    input.addEventListener('input', () => {
+        // Remove qualquer caractere que não seja dígito
+        input.value = input.value.replace(/\D/g, '');
+    });
+});
+
 // Inicialização
 window.onload = () => {
 	if (!localStorage.getItem("fireworksCount")) {

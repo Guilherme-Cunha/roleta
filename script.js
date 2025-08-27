@@ -17,43 +17,43 @@ const drops = Array(Math.floor(columns)).fill(1);
 let sparkleParticles = [];
 
 function createSparkles() {
-  for (let i = 0; i < 20; i++) {
-    sparkleParticles.push({
-      x: 300 + Math.random() * 600 - 300,
-      y: 300 + Math.random() * 600 - 300,
-      radius: Math.random() * 2 + 1,
-      alpha: Math.random(),
-      deltaAlpha: 0.02
-    });
-  }
+    for (let i = 0; i < 20; i++) {
+        sparkleParticles.push({
+            x: 300 + Math.random() * 600 - 300,
+            y: 300 + Math.random() * 600 - 300,
+            radius: Math.random() * 2 + 1,
+            alpha: Math.random(),
+            deltaAlpha: 0.02
+        });
+    }
 }
 
 function drawSparkles() {
-  for (let p of sparkleParticles) {
-    ctx.beginPath();
-    ctx.fillStyle = `rgba(0,255,0,${p.alpha})`;
-    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-    ctx.fill();
-    p.alpha += p.deltaAlpha;
-    if (p.alpha >= 1 || p.alpha <= 0) p.deltaAlpha *= -1;
-  }
+    for (let p of sparkleParticles) {
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(0,255,0,${p.alpha})`;
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        p.alpha += p.deltaAlpha;
+        if (p.alpha >= 1 || p.alpha <= 0) p.deltaAlpha *= -1;
+    }
 }
 
 function drawMatrix() {
-  ctxBg.fillStyle = "rgba(0, 0, 0, 0.05)";
-  ctxBg.fillRect(0, 0, canvasBg.width, canvasBg.height);
+    ctxBg.fillStyle = "rgba(0, 0, 0, 0.05)";
+    ctxBg.fillRect(0, 0, canvasBg.width, canvasBg.height);
 
-  ctxBg.fillStyle = "#0F0";
-  ctxBg.font = fontSize + "px monospace";
+    ctxBg.fillStyle = "#0F0";
+    ctxBg.font = fontSize + "px monospace";
 
-  for (let i = 0; i < drops.length; i++) {
-    const text = letters[Math.floor(Math.random() * letters.length)];
-    ctxBg.fillText(text, i * fontSize, drops[i] * fontSize);
-    if (drops[i] * fontSize > canvasBg.height || Math.random() > 0.975) {
-      drops[i] = 0;
+    for (let i = 0; i < drops.length; i++) {
+        const text = letters[Math.floor(Math.random() * letters.length)];
+        ctxBg.fillText(text, i * fontSize, drops[i] * fontSize);
+        if (drops[i] * fontSize > canvasBg.height || Math.random() > 0.975) {
+            drops[i] = 0;
+        }
+        drops[i]++;
     }
-    drops[i]++;
-  }
 }
 
 setInterval(drawMatrix, 50);
@@ -64,8 +64,8 @@ fwCanvas.width = window.innerWidth;
 fwCanvas.height = window.innerHeight;
 
 window.addEventListener('resize', () => {
-  fwCanvas.width = window.innerWidth;
-  fwCanvas.height = window.innerHeight;
+    fwCanvas.width = window.innerWidth;
+    fwCanvas.height = window.innerHeight;
 });
 
 // ROLETAS
@@ -88,97 +88,97 @@ let idleAnimation = null;
 let blinkInterval = null;
 
 function generateDistinctColors(n) {
-  const colors = [];
-  const saturation = 70;
-  const lightness = 60;
-  for (let i = 0; i < n; i++) {
-    const hue = Math.floor((360 / n) * i);
-    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
-  }
-  for (let i = colors.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [colors[i], colors[j]] = [colors[j], colors[i]];
-  }
-  return colors;
+    const colors = [];
+    const saturation = 70;
+    const lightness = 60;
+    for (let i = 0; i < n; i++) {
+        const hue = Math.floor((360 / n) * i);
+        colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+    }
+    for (let i = colors.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [colors[i], colors[j]] = [colors[j], colors[i]];
+    }
+    return colors;
 }
 
 function setupWheel() {
-  const input = document.getElementById('names').value;
-  if (!input) return;
+    const input = document.getElementById('names').value;
+    if (!input) return;
 
-  if (starded === 1) {
-    const confirmar = confirm("Deseja realmente gerar a roleta novamente?");
-    if (!confirmar) return;
-  }
+    if (starded === 1) {
+        const confirmar = confirm("Deseja realmente gerar a roleta novamente?");
+        if (!confirmar) return;
+    }
 
-  const raw = input
-    .split(/[\n,]+/)
-    .map(n => n.trim())
-    .filter(n => n);
+    const raw = input
+        .split(/[\n,]+/)
+        .map(n => n.trim())
+        .filter(n => n);
 
-  const colorArr = generateDistinctColors(raw.length);
-  entries = raw.map((n, i) => ({
-    id: `${Date.now()}-${i}-${Math.floor(Math.random() * 100000)}`,
-    name: n,
-    color: colorArr[i]
-  }));
+    const colorArr = generateDistinctColors(raw.length);
+    entries = raw.map((n, i) => ({
+        id: `${Date.now()}-${i}-${Math.floor(Math.random() * 100000)}`,
+        name: n,
+        color: colorArr[i]
+    }));
 
-  arc = Math.PI * 2 / entries.length;
-  drawWheel();
-  document.getElementById('spinBtn').style.display = 'block';
+    arc = Math.PI * 2 / entries.length;
+    drawWheel();
+    document.getElementById('spinBtn').style.display = 'block';
 }
 
 function drawWheel(blinkId = null, visible = true) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.shadowColor = "rgba(0,255,0,0.5)";
-  ctx.shadowBlur = 15;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
+    ctx.shadowColor = "rgba(0,255,0,0.5)";
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 
-  for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i];
-    const angle = startAngle + i * arc;
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        const angle = startAngle + i * arc;
 
-    ctx.fillStyle = (blinkId && entry.id === blinkId && !visible) ? '#000' : entry.color;
+        ctx.fillStyle = (blinkId && entry.id === blinkId && !visible) ? '#000' : entry.color;
 
-    ctx.beginPath();
-    ctx.moveTo(300, 300);
-    ctx.arc(300, 300, 300, angle, angle + arc, false);
-    ctx.lineTo(300, 300);
-    ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(300, 300);
+        ctx.arc(300, 300, 300, angle, angle + arc, false);
+        ctx.lineTo(300, 300);
+        ctx.fill();
 
-    ctx.save();
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 18px Arial';
-    ctx.translate(
-      300 + Math.cos(angle + arc / 2) * 180,
-      300 + Math.sin(angle + arc / 2) * 180
-    );
-    ctx.rotate(angle + arc / 2);
-    ctx.fillText(entry.name, -ctx.measureText(entry.name).width / 2, 0);
-    ctx.restore();
-  }
-  ctx.shadowBlur = 0;
+        ctx.save();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 18px Arial';
+        ctx.translate(
+            300 + Math.cos(angle + arc / 2) * 180,
+            300 + Math.sin(angle + arc / 2) * 180
+        );
+        ctx.rotate(angle + arc / 2);
+        ctx.fillText(entry.name, -ctx.measureText(entry.name).width / 2, 0);
+        ctx.restore();
+    }
+    ctx.shadowBlur = 0;
 }
 
 function spin() {
-  setTimeout(() => {
-    starded = 1;
-    const spinBtn = document.getElementById('spinBtn');
-    if (entries.length > 0) {
-      clearInterval(idleAnimation);
-      idleAnimation = null;
-      spinBtn.disabled = true;
-      spinAngleStart = Math.random() * 10 + 25;
-      spinTime = 0;
+    setTimeout(() => {
+        starded = 1;
+        const spinBtn = document.getElementById('spinBtn');
+        if (entries.length > 0) {
+            clearInterval(idleAnimation);
+            idleAnimation = null;
+            spinBtn.disabled = true;
+            spinAngleStart = Math.random() * 10 + 25;
+            spinTime = 0;
 
-      const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;
-      spinTimeTotal = configuredTime;
+            const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;
+            spinTimeTotal = configuredTime;
 
-      rotateWheel();
-    }
-  }, 1500);
+            rotateWheel();
+        }
+    }, 1500);
 }
 
 let lastTickAngle = 0; // nova variável global para controlar ticks
@@ -208,216 +208,216 @@ function rotateWheel() {
 }
 
 function stopRotateWheel() {
-  clearTimeout(spinTimeout);
-  spinSound.pause();
-  spinSound.currentTime = 0;
+    clearTimeout(spinTimeout);
+    spinSound.pause();
+    spinSound.currentTime = 0;
 
-  const degrees = (startAngle * 180) / Math.PI + 90;
-  const arcd = (arc * 180) / Math.PI;
-  let index = Math.floor((360 - (degrees % 360)) / arcd);
-  index = ((index % entries.length) + entries.length) % entries.length;
+    const degrees = (startAngle * 180) / Math.PI + 90;
+    const arcd = (arc * 180) / Math.PI;
+    let index = Math.floor((360 - (degrees % 360)) / arcd);
+    index = ((index % entries.length) + entries.length) % entries.length;
 
-  const winnerEntry = entries[index];
-  currentWinner = winnerEntry;
-  showWinner(winnerEntry);
+    const winnerEntry = entries[index];
+    currentWinner = winnerEntry;
+    showWinner(winnerEntry);
 }
 
 function easeOut(t, b, c, d) {
-  return c * ((t = t / d - 1) * t * t + 1) + b;
+    return c * ((t = t / d - 1) * t * t + 1) + b;
 }
 
 function showWinner(entry) {
-  sound.play();
-  fireworks();
-  document.getElementById('winner').innerHTML = `<strong>${entry.name}</strong>`;
-  document.getElementById('modal').style.display = 'flex';
+    sound.play();
+    fireworks();
+    document.getElementById('winner').innerHTML = `<strong>${entry.name}</strong>`;
+    document.getElementById('modal').style.display = 'flex';
 
-  if (blinkInterval) {
-    clearInterval(blinkInterval);
-    blinkInterval = null;
-    drawWheel();
-  }
-
-  const winnerId = entry.id;
-  let visible = true;
-
-  blinkInterval = setInterval(() => {
-    visible = !visible;
-    drawWheel(winnerId, visible);
-  }, 300);
-
-  document.getElementById('okBtn').onclick = () => {
-    clearInterval(blinkInterval);
-    blinkInterval = null;
-    entries = entries.filter(e => e.id !== winnerId);
-
-    if (entries.length > 0) {
-      arc = Math.PI * 2 / entries.length;
+    if (blinkInterval) {
+        clearInterval(blinkInterval);
+        blinkInterval = null;
+        drawWheel();
     }
-    startAngle = 0;
-    document.getElementById('modal').style.display = 'none';
-    drawWheel();
-    animateIdle();
-    document.getElementById('spinBtn').disabled = false;
-  };
+
+    const winnerId = entry.id;
+    let visible = true;
+
+    blinkInterval = setInterval(() => {
+        visible = !visible;
+        drawWheel(winnerId, visible);
+    }, 300);
+
+    document.getElementById('okBtn').onclick = () => {
+        clearInterval(blinkInterval);
+        blinkInterval = null;
+        entries = entries.filter(e => e.id !== winnerId);
+
+        if (entries.length > 0) {
+            arc = Math.PI * 2 / entries.length;
+        }
+        startAngle = 0;
+        document.getElementById('modal').style.display = 'none';
+        drawWheel();
+        animateIdle();
+        document.getElementById('spinBtn').disabled = false;
+    };
 }
 
 function fireworks() {
-  const colors = generateDistinctColors(10);
+    const colors = generateDistinctColors(10);
 
-  // Pega configuração do localStorage ou usa 5 como padrão
-  const numRockets = parseInt(localStorage.getItem("fireworksCount")) || 5;
+    // Pega configuração do localStorage ou usa 5 como padrão
+    const numRockets = parseInt(localStorage.getItem("fireworksCount")) || 5;
 
-  const delay = 300;
-  for (let i = 0; i < numRockets; i++) {
-    setTimeout(() => {
-      const startX = Math.random() * fwCanvas.width * 0.8 + fwCanvas.width * 0.1;
-      const startY = fwCanvas.height + 10;
-      const peakY = Math.random() * fwCanvas.height * 0.4 + fwCanvas.height * 0.1;
-      launchRocket(startX, startY, peakY, colors);
-    }, i * delay);
-  }
+    const delay = 300;
+    for (let i = 0; i < numRockets; i++) {
+        setTimeout(() => {
+            const startX = Math.random() * fwCanvas.width * 0.8 + fwCanvas.width * 0.1;
+            const startY = fwCanvas.height + 10;
+            const peakY = Math.random() * fwCanvas.height * 0.4 + fwCanvas.height * 0.1;
+            launchRocket(startX, startY, peakY, colors);
+        }, i * delay);
+    }
 }
 
 function launchRocket(x, y, peakY, colors) {
-  const rocketColor = colors[Math.floor(Math.random() * colors.length)];
-  const rocket = { 
-	x, 
-	y, 
-	peakY, 
-	exploded: false, 
-	color: rocketColor,
-	radius: 2 + Math.random() * 2, // tamanho inicial
-	sway: Math.random() * 2 + 1,   // amplitude horizontal
-	swayDir: Math.random() < 0.5 ? -1 : 1 // direção inicial da oscilação
-  };
+    const rocketColor = colors[Math.floor(Math.random() * colors.length)];
+    const rocket = {
+        x,
+        y,
+        peakY,
+        exploded: false,
+        color: rocketColor,
+        radius: 2 + Math.random() * 2, // tamanho inicial
+        sway: Math.random() * 2 + 1, // amplitude horizontal
+        swayDir: Math.random() < 0.5 ? -1 : 1 // direção inicial da oscilação
+    };
 
-  const rocketSound = document.getElementById('rocketSound');
-  rocketSound.volume = 0.8;
-  rocketSound.currentTime = 0;
-  rocketSound.play();
+    const rocketSound = document.getElementById('rocketSound');
+    rocketSound.volume = 0.8;
+    rocketSound.currentTime = 0;
+    rocketSound.play();
 
-  const rocketInterval = setInterval(() => {
-	if (!rocket.exploded) {
-	  // sobe verticalmente
-	  rocket.y += -4 - Math.random() * 4;
+    const rocketInterval = setInterval(() => {
+        if (!rocket.exploded) {
+            // sobe verticalmente
+            rocket.y += -4 - Math.random() * 4;
 
-	  // oscila horizontalmente
-	  rocket.x += rocket.swayDir * Math.random() * 1.5;
-	  // inverte direção se passar limite da amplitude
-	  if (Math.abs(rocket.x - x) > rocket.sway) rocket.swayDir *= -1;
+            // oscila horizontalmente
+            rocket.x += rocket.swayDir * Math.random() * 1.5;
+            // inverte direção se passar limite da amplitude
+            if (Math.abs(rocket.x - x) > rocket.sway) rocket.swayDir *= -1;
 
-	  // aumenta ou diminui o raio do foguete para parecer que se aproxima ou afasta
-	  rocket.radius = 1 + Math.sin((rocket.y / peakY) * Math.PI) * 3;
+            // aumenta ou diminui o raio do foguete para parecer que se aproxima ou afasta
+            rocket.radius = 1 + Math.sin((rocket.y / peakY) * Math.PI) * 3;
 
-	  // explode no topo
-	  if (rocket.y <= rocket.peakY) {
-		rocket.exploded = true;
-		createExplosion(rocket.x, rocket.y, colors);
+            // explode no topo
+            if (rocket.y <= rocket.peakY) {
+                rocket.exploded = true;
+                createExplosion(rocket.x, rocket.y, colors);
 
-		const explosionSound = document.getElementById('explosionSound');
-		explosionSound.volume = 0.5;
-		explosionSound.currentTime = 0;
-		explosionSound.play();
+                const explosionSound = document.getElementById('explosionSound');
+                explosionSound.volume = 0.5;
+                explosionSound.currentTime = 0;
+                explosionSound.play();
 
-		clearInterval(rocketInterval);
-	  } else {
-		allParticles.push({
-		  x: rocket.x,
-		  y: rocket.y,
-		  vx: 0,
-		  vy: 0,
-		  color: rocket.color,
-		  life: 10,
-		  radius: 2
-		});
-	  }
-	}
-  }, 30);
+                clearInterval(rocketInterval);
+            } else {
+                allParticles.push({
+                    x: rocket.x,
+                    y: rocket.y,
+                    vx: 0,
+                    vy: 0,
+                    color: rocket.color,
+                    life: 10,
+                    radius: 2
+                });
+            }
+        }
+    }, 30);
 
-  startFireworksAnimation();
+    startFireworksAnimation();
 }
 
 function createExplosion(x, y, colors) {
-  const particleCount = 50 + Math.floor(Math.random() * 50);
-  for (let i = 0; i < particleCount; i++) {
-	const angle = Math.random() * 2 * Math.PI;
-	const speed = Math.random() * 5 + 2;
-	const color = colors[Math.floor(Math.random() * colors.length)];
-	allParticles.push({
-	  x: x,
-	  y: y,
-	  vx: Math.cos(angle) * speed,
-	  vy: Math.sin(angle) * speed,
-	  color: color,
-	  life: 50 + Math.random() * 30,   // vida da partícula
-	  radius: 2 + Math.random() * 3,   // tamanho inicial
-	  shrink: 0.05 + Math.random() * 0.05,  // taxa de encolhimento
-	  fade: 0.02 + Math.random() * 0.02     // taxa de transparência
-	});
-  }
+    const particleCount = 50 + Math.floor(Math.random() * 50);
+    for (let i = 0; i < particleCount; i++) {
+        const angle = Math.random() * 2 * Math.PI;
+        const speed = Math.random() * 5 + 2;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        allParticles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            color: color,
+            life: 50 + Math.random() * 30, // vida da partícula
+            radius: 2 + Math.random() * 3, // tamanho inicial
+            shrink: 0.05 + Math.random() * 0.05, // taxa de encolhimento
+            fade: 0.02 + Math.random() * 0.02 // taxa de transparência
+        });
+    }
 }
 
 function getRandomIntInclusive(min, max) {
-  min = Math.ceil(min); // Garante que o valor mínimo seja um inteiro
-  max = Math.floor(max); // Garante que o valor máximo seja um inteiro
-  return Math.floor(Math.random() * (max - min + 1)) + min; // O número gerado é [min, max]
+    min = Math.ceil(min); // Garante que o valor mínimo seja um inteiro
+    max = Math.floor(max); // Garante que o valor máximo seja um inteiro
+    return Math.floor(Math.random() * (max - min + 1)) + min; // O número gerado é [min, max]
 }
 
 function startFireworksAnimation() {
-  if (fireworksAnimation) return; // já rodando
-  fireworksAnimation = setInterval(() => {
-	fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+    if (fireworksAnimation) return; // já rodando
+    fireworksAnimation = setInterval(() => {
+        fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
 
-	for (let i = allParticles.length - 1; i >= 0; i--) {
-	  let numeroAleatorio = getRandomIntInclusive(1, 10);
-	  const p = allParticles[i];
-	  fwCtx.beginPath();
-	  fwCtx.fillStyle = p.color;
-	  fwCtx.arc(p.x, p.y, numeroAleatorio, 0, Math.PI*2);
-	  fwCtx.fill();
+        for (let i = allParticles.length - 1; i >= 0; i--) {
+            let numeroAleatorio = getRandomIntInclusive(1, 10);
+            const p = allParticles[i];
+            fwCtx.beginPath();
+            fwCtx.fillStyle = p.color;
+            fwCtx.arc(p.x, p.y, numeroAleatorio, 0, Math.PI * 2);
+            fwCtx.fill();
 
-	  p.x += p.vx;
-	  p.y += p.vy;
-	  p.vy += 0.05; // gravidade leve
-	  p.life--;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.05; // gravidade leve
+            p.life--;
 
-	  if (p.life <= 0) {
-		allParticles.splice(i, 1);
-	  }
-	}
+            if (p.life <= 0) {
+                allParticles.splice(i, 1);
+            }
+        }
 
-	// Para o loop se não houver partículas
-	if (allParticles.length === 0) {
-	  clearInterval(fireworksAnimation);
-	  fireworksAnimation = null;
-	  fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
-	}
-  }, 30);
+        // Para o loop se não houver partículas
+        if (allParticles.length === 0) {
+            clearInterval(fireworksAnimation);
+            fireworksAnimation = null;
+            fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+        }
+    }, 30);
 }
 
 function animateIdle() {
-  if (idleAnimation) return;
-  idleAnimation = setInterval(() => {
-	startAngle += 0.002;
-	canvas.style.transform = `rotateY(${Math.sin(startAngle) * 5}deg) rotateX(${Math.cos(startAngle) * 5}deg)`;
-	drawWheel();
-	drawSparkles();
-  }, 30);
+    if (idleAnimation) return;
+    idleAnimation = setInterval(() => {
+        startAngle += 0.002;
+        canvas.style.transform = `rotateY(${Math.sin(startAngle) * 5}deg) rotateX(${Math.cos(startAngle) * 5}deg)`;
+        drawWheel();
+        drawSparkles();
+    }, 30);
 }
 
 // Extra: rastro estilo matrix
 let trails = [];
 document.addEventListener("mousemove", (e) => {
-  let trail = document.createElement("div");
-  trail.className = "matrix-trail";
-  trail.style.left = e.pageX + "px";
-  trail.style.top = e.pageY + "px";
-  document.body.appendChild(trail);
+    let trail = document.createElement("div");
+    trail.className = "matrix-trail";
+    trail.style.left = e.pageX + "px";
+    trail.style.top = e.pageY + "px";
+    document.body.appendChild(trail);
 
-  setTimeout(() => {
-    trail.remove();
-  }, 500);
+    setTimeout(() => {
+        trail.remove();
+    }, 500);
 });
 
 // CSS dos rastros adicionados via JS
@@ -444,50 +444,50 @@ document.head.appendChild(style);
 
 // script.js (adicione ao final do arquivo, ou onde concentra seus handlers)
 document.addEventListener('DOMContentLoaded', () => {
-  const boneco  = document.getElementById('boneco');
-  const spinBtn = document.getElementById('spinBtn');
+    const boneco = document.getElementById('boneco');
+    const spinBtn = document.getElementById('spinBtn');
 
-  if (!boneco || !spinBtn) {
-    console.warn('Elemento(s) não encontrado(s): verifique se #boneco e #spinBtn existem no HTML.');
-    return;
-  }
+    if (!boneco || !spinBtn) {
+        console.warn('Elemento(s) não encontrado(s): verifique se #boneco e #spinBtn existem no HTML.');
+        return;
+    }
 
-  let animando = false;
+    let animando = false;
 
-  function animarBoneco() {
-	if (entries.length === 0) return;
-    if (animando) return;
-	
-	animando = true;
+    function animarBoneco() {
+        if (entries.length === 0) return;
+        if (animando) return;
 
-    // 1) aparece caminhando
-    boneco.classList.add('ativo');
+        animando = true;
 
-    // 2) quando chega, empurra a roleta
-    const tempoCaminhada = 1200;   // ms (deve casar com o CSS .boneco.ativo transition)
-    setTimeout(() => {
-      boneco.classList.add('empurrando');
-    }, tempoCaminhada);
+        // 1) aparece caminhando
+        boneco.classList.add('ativo');
 
-    // 3) depois sai caminhando e some
-    const tempoEmpurrao = 3200;    // ~ duas iterações do keyframe 0.8s cada
-    setTimeout(() => {
-      boneco.classList.remove('empurrando');
-      boneco.classList.add('saindo');
-    }, tempoCaminhada + tempoEmpurrao);
+        // 2) quando chega, empurra a roleta
+        const tempoCaminhada = 1200; // ms (deve casar com o CSS .boneco.ativo transition)
+        setTimeout(() => {
+            boneco.classList.add('empurrando');
+        }, tempoCaminhada);
 
-    // 4) reset para próxima vez
-    const tempoSaida = 1200;       // deve casar com o CSS .boneco.saindo transition
-    setTimeout(() => {
-      boneco.classList.remove('ativo', 'saindo', 'empurrando');
-      // limpa estilos inline se você os usar em outros trechos
-      animando = false;
-    }, tempoCaminhada + tempoEmpurrao + tempoSaida + 50);
-  }
+        // 3) depois sai caminhando e some
+        const tempoEmpurrao = 3200; // ~ duas iterações do keyframe 0.8s cada
+        setTimeout(() => {
+            boneco.classList.remove('empurrando');
+            boneco.classList.add('saindo');
+        }, tempoCaminhada + tempoEmpurrao);
 
-  // Acople a animação ao botão de girar
-  // Se você já usa onclick="spin()", este listener não atrapalha; ambos executam.
-  spinBtn.addEventListener('click', animarBoneco);
+        // 4) reset para próxima vez
+        const tempoSaida = 1200; // deve casar com o CSS .boneco.saindo transition
+        setTimeout(() => {
+            boneco.classList.remove('ativo', 'saindo', 'empurrando');
+            // limpa estilos inline se você os usar em outros trechos
+            animando = false;
+        }, tempoCaminhada + tempoEmpurrao + tempoSaida + 50);
+    }
+
+    // Acople a animação ao botão de girar
+    // Se você já usa onclick="spin()", este listener não atrapalha; ambos executam.
+    spinBtn.addEventListener('click', animarBoneco);
 });
 
 // Abrir e fechar modal
@@ -500,20 +500,20 @@ btnOpen.onclick = () => modal.style.display = "block";
 btnClose.onclick = () => modal.style.display = "none";
 
 window.onclick = function(event) {
-  if (event.target === modal) {
-    modal.style.display = "none";
-  }
+    if (event.target === modal) {
+        modal.style.display = "none";
+    }
 };
 
 btnSave.onclick = () => {
-  const fireworksCount = document.getElementById("fireworksCount").value;
-  const spinTime = document.getElementById("spinTime").value;
+    const fireworksCount = document.getElementById("fireworksCount").value;
+    const spinTime = document.getElementById("spinTime").value;
 
-  localStorage.setItem("fireworksCount", fireworksCount);
-  localStorage.setItem("spinTime", spinTime);
+    localStorage.setItem("fireworksCount", fireworksCount);
+    localStorage.setItem("spinTime", spinTime);
 
-  alert("Configurações salvas!");
-  modal.style.display = "none";
+    alert("Configurações salvas!");
+    modal.style.display = "none";
 };
 
 const numericInputs = document.querySelectorAll('#fireworksCount, #spinTime');
@@ -527,17 +527,21 @@ numericInputs.forEach(input => {
 
 // Inicialização
 window.onload = () => {
-	if (!localStorage.getItem("fireworksCount")) {
-		localStorage.setItem("fireworksCount", 5);
-	}
-	if (!localStorage.getItem("spinTime")) {
-		localStorage.setItem("spinTime", 10000);
-	}
+    if (!localStorage.getItem("fireworksCount")) {
+        localStorage.setItem("fireworksCount", 5);
+    }
+    if (!localStorage.getItem("spinTime")) {
+        localStorage.setItem("spinTime", 10000);
+    }
 
-	const defaultNames = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
-	const colorArr = generateDistinctColors(defaultNames.length);
-	entries = defaultNames.map((n, i) => ({ id: `init-${i}`, name: n, color: colorArr[i] }));
-	arc = Math.PI * 2 / entries.length;
-	drawWheel();
-	animateIdle();
+    const defaultNames = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
+    const colorArr = generateDistinctColors(defaultNames.length);
+    entries = defaultNames.map((n, i) => ({
+        id: `init-${i}`,
+        name: n,
+        color: colorArr[i]
+    }));
+    arc = Math.PI * 2 / entries.length;
+    drawWheel();
+    animateIdle();
 };

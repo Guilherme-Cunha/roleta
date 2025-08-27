@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, tempoCaminhada);
 
         // 3) depois sai caminhando e some
-        const tempoEmpurrao = 3200; // ~ duas iterações do keyframe 0.8s cada
+        const tempoEmpurrao = 3200;
         setTimeout(() => {
             boneco.classList.remove('empurrando');
             boneco.classList.add('saindo');
@@ -484,9 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
             animando = false;
         }, tempoCaminhada + tempoEmpurrao + tempoSaida + 50);
     }
-
-    // Acople a animação ao botão de girar
-    // Se você já usa onclick="spin()", este listener não atrapalha; ambos executam.
+	
     spinBtn.addEventListener('click', animarBoneco);
 });
 

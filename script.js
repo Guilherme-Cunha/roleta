@@ -506,7 +506,7 @@ window.onclick = function(event) {
 };
 
 btnSave.onclick = () => {
-    const fireworksCount = document.getElementById("fireworksCount").value;
+    const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
     const spinTime = document.getElementById("spinTime").value;
 
     localStorage.setItem("fireworksCount", fireworksCount);
@@ -527,13 +527,9 @@ numericInputs.forEach(input => {
 
 // Inicialização
 window.onload = () => {
-    if (!localStorage.getItem("fireworksCount")) {
-        localStorage.setItem("fireworksCount", 5);
-    }
-    if (!localStorage.getItem("spinTime")) {
-        localStorage.setItem("spinTime", 10000);
-    }
-
+    localStorage.setItem("fireworksCount", 5);
+    localStorage.setItem("spinTime", 10000);
+    
     const defaultNames = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
     const colorArr = generateDistinctColors(defaultNames.length);
     entries = defaultNames.map((n, i) => ({

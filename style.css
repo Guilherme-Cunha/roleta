@@ -190,6 +190,35 @@ button {
     animation: empurrar 0.8s ease-in-out 6;
 }
 
+/* --- pernas balançando (estilo do braço) --- */
+@keyframes perna-balanco {
+  0%, 100% { transform: rotate(18deg); }
+  50%      { transform: rotate(-18deg); }
+}
+
+/* ponto de rotação no “quadril” do SVG (x=50, y=120)  */
+.boneco.ativo #perna-esquerda,
+.boneco.saindo #perna-esquerda {
+  transform-origin: 50px 120px;
+  /* se seu navegador pedir, habilite a linha abaixo */
+  /* transform-box: fill-box; */
+  animation: perna-balanco 0.45s linear infinite;
+}
+
+.boneco.ativo #perna-direita,
+.boneco.saindo #perna-direita {
+  transform-origin: 50px 120px;
+  /* transform-box: fill-box; */
+  animation: perna-balanco 0.45s linear infinite reverse; /* alterna com a esquerda */
+}
+
+/* durante o empurrão, pernas param retas */
+.boneco.empurrando #perna-esquerda,
+.boneco.empurrando #perna-direita {
+  animation: none;
+  transform: rotate(0deg);
+}
+
 #wheelContainer {
     position: relative;
 }

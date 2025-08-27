@@ -227,6 +227,8 @@ function easeOut(t, b, c, d) {
 }
 
 function showWinner(entry) {
+	sound.currentTime = 1;
+	sound.volume = 0.3;
     sound.play();
     fireworks();
     document.getElementById('winner').innerHTML = `<strong>${entry.name}</strong>`;

@@ -513,6 +513,12 @@ document.head.appendChild(style);
 
 // script.js (adicione ao final do arquivo, ou onde concentra seus handlers)
 document.addEventListener('DOMContentLoaded', () => {
+	const checkbox = document.getElementById('toggleSpeechTimer');
+	checkbox.addEventListener('change', () => {
+		showSpeechTimer = checkbox.checked;
+		resetTimer(); // sempre reseta ao ativar/desativar
+	});
+	
 	const boneco = document.getElementById('boneco');
     const spinBtn = document.getElementById('spinBtn');
 
@@ -583,6 +589,7 @@ btnSave.onclick = () => {
 	
     localStorage.setItem("fireworksCount", fireworksCount);
     localStorage.setItem("spinTime", spinTime);
+	document.getElementById('speechTimer').style.display = showSpeechTimer ? 'block' : 'none';
 
     showToast("Configurações salvas!", "success");
     modal.style.display = "none";
@@ -621,6 +628,7 @@ function showToast(message, type = 'info', duration = 5000) {
   
 let timer = 0;
 let timerInterval = null;
+let showSpeechTimer = false;
 
 // Função para iniciar o contador
 function startTimer() {

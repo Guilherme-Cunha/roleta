@@ -129,7 +129,7 @@ function setupWheel() {
     arc = Math.PI * 2 / entries.length;
     drawWheel();
     document.getElementById('spinBtn').style.display = 'block';
-	showToast("Roleta gerada com sucesso!", "success");
+	showToast("Roleta gerada com sucesso!", "info");
 }
 
 let blinkFatiaId = null; // fatia que vai "respirar"

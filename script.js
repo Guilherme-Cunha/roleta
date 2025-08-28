@@ -132,7 +132,9 @@ function setupWheel() {
 	showToast("Roleta gerada com sucesso!", "success");
 }
 
-function drawWheel(blinkId = null, visible = true) {
+let blinkFatiaId = null; // fatia que vai "respirar"
+
+function drawWheel(blinkId = null) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.shadowColor = "rgba(0,255,0,0.5)";
@@ -140,11 +142,19 @@ function drawWheel(blinkId = null, visible = true) {
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 
+    const time = performance.now() / 500; // controla a velocidade da respiração
+    const alpha = 0.5 + 0.5 * Math.sin(time); // varia entre 0 e 1 suavemente
+
     for (let i = 0; i < entries.length; i++) {
         const entry = entries[i];
         const angle = startAngle + i * arc;
 
-        ctx.fillStyle = (blinkId && entry.id === blinkId && !visible) ? '#000' : entry.color;
+        // Se for a fatia vencedora, aplica a opacidade "respirante"
+        if (blinkId && entry.id === blinkId) {
+            ctx.fillStyle = hexToRgba(entry.color, alpha); // função para converter HEX/HSL para rgba
+        } else {
+            ctx.fillStyle = entry.color;
+        }
 
         ctx.beginPath();
         ctx.moveTo(300, 300);
@@ -163,8 +173,32 @@ function drawWheel(blinkId = null, visible = true) {
         ctx.fillText(entry.name, -ctx.measureText(entry.name).width / 2, 0);
         ctx.restore();
     }
+
     ctx.shadowBlur = 0;
 }
+
+// Função auxiliar para converter HEX para rgba com alpha
+function hexToRgba(hex, alpha = 1) {
+    let r = 0, g = 0, b = 0;
+    if (hex.length === 7) {
+        r = parseInt(hex.slice(1, 3), 16);
+        g = parseInt(hex.slice(3, 5), 16);
+        b = parseInt(hex.slice(5, 7), 16);
+    }
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// Loop contínuo de animação para a fatia piscante
+function animateBlink() {
+    if (blinkFatiaId) {
+        drawWheel(blinkFatiaId);
+        requestAnimationFrame(animateBlink);
+    }
+}
+
+// Para iniciar a respiração, por exemplo quando mostrar o vencedor:
+blinkFatiaId = winnerEntry.id;
+animateBlink();
 
 function spin() {
 	if (entries.length > 0) {

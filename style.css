@@ -249,7 +249,7 @@ canvas {
     border-bottom: 20px solid transparent;
     border-left: 30px solid red;
     position: absolute;
-    top: -10px;
+    top: -5px;
     right: 47.9%;
     transform: rotate(90deg);
 }

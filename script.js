@@ -81,7 +81,7 @@ let startAngle = 0;
 let arc;
 let spinTimeout = null;
 let spinAngleStart = 0;
-let 0;
+let spinTime = 0;
 let spinTimeTotal = 0;
 let currentWinner = null;
 let idleAnimation = null;

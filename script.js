@@ -514,7 +514,7 @@ btnSave.onclick = () => {
 	}
 
 	if (fireworksCount > 10) {
-		showToast("Cuidado! Estamos quase chamando os bombeiros.", "info");
+		showToast("Quantos foguetes!!! Cuidado, estamos quase chamando os bombeiros.", "info");
 	}
 
 	if (spinTime < 1 || !spinTime) {

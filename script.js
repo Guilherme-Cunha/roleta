@@ -171,9 +171,9 @@ function spin() {
             idleAnimation = null;
             spinBtn.disabled = true;
             spinAngleStart = Math.random() * 10 + 25;
-            spinTime = parseInt(document.getElementById("spinTime").value);
+            spinTime = 0;
 
-            const configuredTime = spinTime || 5000;
+            const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;
             spinTimeTotal = configuredTime;
 
             rotateWheel();

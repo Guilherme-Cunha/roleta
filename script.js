@@ -104,7 +104,10 @@ function generateDistinctColors(n) {
 
 function setupWheel() {
     const input = document.getElementById('names').value;
-    if (!input) return;
+    if (!input) {
+		showToast("Informe pelo menos um nome para gerar a roleta!", "info");
+		return;
+	}
 
     if (starded === 1) {
         const confirmar = confirm("Deseja realmente gerar a roleta novamente?");
@@ -126,7 +129,7 @@ function setupWheel() {
     arc = Math.PI * 2 / entries.length;
     drawWheel();
     document.getElementById('spinBtn').style.display = 'block';
-	showToast("Roleta gerada com sucesso!");
+	showToast("Roleta gerada com sucesso!", "success");
 }
 
 function drawWheel(blinkId = null, visible = true) {
@@ -164,22 +167,22 @@ function drawWheel(blinkId = null, visible = true) {
 }
 
 function spin() {
-    setTimeout(() => {
-        starded = 1;
-        const spinBtn = document.getElementById('spinBtn');
-        if (entries.length > 0) {
-            clearInterval(idleAnimation);
-            idleAnimation = null;
-            spinBtn.disabled = true;
-            spinAngleStart = Math.random() * 10 + 25;
-            spinTime = 0;
+	if (entries.length > 0) {
+		setTimeout(() => {
+			starded = 1;
+			const spinBtn = document.getElementById('spinBtn');
+			clearInterval(idleAnimation);
+			idleAnimation = null;
+			spinBtn.disabled = true;
+			spinAngleStart = Math.random() * 10 + 25;
+			spinTime = 0;
 
-            const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;
-            spinTimeTotal = configuredTime;
+			const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;
+			spinTimeTotal = configuredTime;
 
-            rotateWheel();
-        }
-    }, 1500);
+			rotateWheel();
+		}, 1500);
+	}
 }
 
 let lastTickAngle = 0; // nova variável global para controlar ticks
@@ -501,30 +504,24 @@ const btnSave = document.getElementById("saveConfig");
 btnOpen.onclick = () => modal.style.display = "block";
 btnClose.onclick = () => modal.style.display = "none";
 
-window.onclick = function(event) {
-    if (event.target === modal) {
-        modal.style.display = "none";
-    }
-};
-
 btnSave.onclick = () => {
     const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
     const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
 
 	if (fireworksCount == 0) {
-		showToast("Número de foguetes não pode ser igual a zero (0)!");
+		showToast("Número de foguetes não pode ser igual a zero (0)!", "warning");
 		return false;
 	}
 
 	if (spinTime == 0) {
-		showToast("O tempo de execução não pode ser igual a zero (0)!");
+		showToast("O tempo de execução não pode ser igual a zero (0)!", "warning");
 		return false;
 	}
 	
     localStorage.setItem("fireworksCount", fireworksCount);
     localStorage.setItem("spinTime", spinTime);
 
-    alert("Configurações salvas!");
+    showToast("Configurações salvas!", "success");
     modal.style.display = "none";
 };
 
@@ -541,23 +538,23 @@ document.addEventListener('contextmenu', function (e) {
 	e.preventDefault();
 });
 
-function showToast(message, duration = 5000) {
+function showToast(message, type = 'info', duration = 5000) {
     const container = document.getElementById("toastContainer");
     const toast = document.createElement("div");
-    toast.className = "toast";
+    toast.className = `toast ${type}`;
     toast.textContent = message;
 
     container.appendChild(toast);
 
-    // Força o reflow antes de adicionar a classe .show
+    // animação de entrada
     setTimeout(() => toast.classList.add("show"), 50);
 
-    // Remove após o tempo definido
+    // animação de saída
     setTimeout(() => {
       toast.classList.remove("show");
       setTimeout(() => container.removeChild(toast), 500);
     }, duration);
-}
+  }
 
 // Inicialização
 window.onload = () => {

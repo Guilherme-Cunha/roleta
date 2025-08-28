@@ -522,7 +522,7 @@ btnSave.onclick = () => {
 		return false;
 	}
 
-	if (spinTime > 29) {
+	if (spinTime > 29000) {
 		showToast("Ah, claro… vamos deixar a roleta girando até o café esfriar.", "info");
 	}
 	

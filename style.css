@@ -59,11 +59,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
-}
+  }
 
-/* Estilo do toast */
-.toast {
-    background: #333;
+  .toast {
     color: #fff;
     padding: 12px 20px;
     border-radius: 8px;
@@ -73,12 +71,18 @@ body {
     transition: all 0.5s ease;
     font-family: Arial, sans-serif;
     min-width: 220px;
-}
+  }
 
-.toast.show {
+  .toast.show {
     opacity: 1;
     transform: translateX(0);
-}
+  }
+
+  /* Tipos de toast */
+  .toast.success { background: #4caf50; }   /* verde */
+  .toast.error   { background: #f44336; }   /* vermelho */
+  .toast.info    { background: #2196f3; }   /* azul */
+  .toast.warning { background: #ff9800; }   /* laranja */
 
 /* Cursor matrix */
 #matrix-cursor {

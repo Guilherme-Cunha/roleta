@@ -508,13 +508,13 @@ btnSave.onclick = () => {
     const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
     const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
 
-	if (fireworksCount == 0) {
-		showToast("Número de foguetes não pode ser igual a zero (0)!", "warning");
+	if (fireworksCount < 1 || !fireworksCount) {
+		showToast("Número de foguetes deve ser maior ou igual a 1 (um)!", "warning");
 		return false;
 	}
 
-	if (spinTime == 0) {
-		showToast("O tempo de execução não pode ser igual a zero (0)!", "warning");
+	if (spinTime < 1 || !spinTime) {
+		showToast("O tempo de execução deve ser de pelo menos 1 (um) segundo!", "warning");
 		return false;
 	}
 	

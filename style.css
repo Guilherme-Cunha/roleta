@@ -347,7 +347,7 @@ canvas {
   padding: 4px 8px;
   border-radius: 4px;
   z-index: 9999;
-  opacity: 35%;
+  opacity: 50%;
   pointer-events: none; /* não atrapalha cliques */
 }
 

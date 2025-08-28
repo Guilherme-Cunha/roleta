@@ -336,6 +336,20 @@ canvas {
     background: linear-gradient(45deg, #0f0, #0ff);
 }
 
+#speechTimer {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #0f0;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  z-index: 9999;
+  opacity: 50%;
+  pointer-events: none; /* não atrapalha cliques */
+}
 
 @keyframes fall {
     to {

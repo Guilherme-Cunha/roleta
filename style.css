@@ -50,6 +50,36 @@ body {
     cursor: inherit;
 }
 
+/* Container das notificações */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Estilo do toast */
+.toast {
+    background: #333;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateX(120%);
+    transition: all 0.5s ease;
+    font-family: Arial, sans-serif;
+    min-width: 220px;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
 /* Cursor matrix */
 #matrix-cursor {
     position: fixed;

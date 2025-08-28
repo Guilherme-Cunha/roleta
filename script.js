@@ -592,6 +592,19 @@ btnSave.onclick = () => {
 	document.getElementById('speechTimer').style.display = showSpeechTimer ? 'block' : 'none';
 
     showToast("Configurações salvas!", "success");
+
+	if (fireworksCount > 10) {
+		showToast("Quantos foguetes!!! Cuidado, estamos quase chamando os bombeiros.", "info", 10000);
+	}
+
+	if (spinTime < 7000) {
+		showToast("Cuidado! Girar tão rápido pode causar tontura virtual.", "info", 10000);
+	}
+	
+	if (spinTime > 29000) {
+		showToast("Ah, claro… vamos deixar a roleta girando até o café esfriar.", "info", 10000);
+	}
+	
     modal.style.display = "none";
 };
 

@@ -513,9 +513,17 @@ btnSave.onclick = () => {
 		return false;
 	}
 
+	if (fireworksCount > 10) {
+		showToast("Cuidado! Estamos quase chamando os bombeiros.", "info");
+	}
+
 	if (spinTime < 1 || !spinTime) {
 		showToast("O tempo de execução deve ser de pelo menos 1 (um) segundo!", "warning");
 		return false;
+	}
+
+	if (spinTime > 29) {
+		showToast("Ah, claro… vamos deixar a roleta girando até o café esfriar.", "info");
 	}
 	
     localStorage.setItem("fireworksCount", fireworksCount);

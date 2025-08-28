@@ -280,6 +280,7 @@ function showWinner(entry) {
     sound.volume = 0.3;
     sound.play();
     fireworks();
+	resetTimer(); // reseta para 00:00
     document.getElementById('winner').innerHTML = `<strong>${entry.name}</strong>`;
     document.getElementById('modal').style.display = 'flex';
 
@@ -307,6 +308,8 @@ function showWinner(entry) {
 
     // Inicia a animação
     animateBlink();
+	
+	startTimer(); // inicia a contagem
 
     document.getElementById('okBtn').onclick = () => {
         animating = false;
@@ -323,6 +326,7 @@ function showWinner(entry) {
         drawWheel(); // redesenha a roda sem a fatia vencedora
         animateIdle();
         document.getElementById('spinBtn').disabled = false;
+		pauseTimer(); // pausa temporariamente
     };
 }
 
@@ -614,6 +618,33 @@ function showToast(message, type = 'info', duration = 5000) {
       setTimeout(() => container.removeChild(toast), 500);
     }, duration);
   }
+  
+let timer = 0;
+let timerInterval = null;
+
+// Função para iniciar o contador
+function startTimer() {
+  if (timerInterval) return; // evita múltiplos timers
+  timerInterval = setInterval(() => {
+    timer++;
+    const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
+    const seconds = String(timer % 60).padStart(2, '0');
+    document.getElementById('speechTimer').textContent = `${minutes}:${seconds}`;
+  }, 1000);
+}
+
+// Função para pausar
+function pauseTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+// Função para resetar
+function resetTimer() {
+  pauseTimer();
+  timer = 0;
+  document.getElementById('speechTimer').textContent = '00:00';
+}
 
 // Inicialização
 window.onload = () => {

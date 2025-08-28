@@ -81,7 +81,7 @@ let startAngle = 0;
 let arc;
 let spinTimeout = null;
 let spinAngleStart = 0;
-let spinTime = 0;
+let 0;
 let spinTimeTotal = 0;
 let currentWinner = null;
 let idleAnimation = null;
@@ -171,9 +171,9 @@ function spin() {
             idleAnimation = null;
             spinBtn.disabled = true;
             spinAngleStart = Math.random() * 10 + 25;
-            spinTime = 0;
+            spinTime = parseInt(document.getElementById("spinTime").value);
 
-            const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;
+            const configuredTime = spinTime || 5000;
             spinTimeTotal = configuredTime;
 
             rotateWheel();
@@ -508,7 +508,7 @@ window.onclick = function(event) {
 
 btnSave.onclick = () => {
     const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
-    const spinTime = document.getElementById("spinTime").value;
+    const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
 
     localStorage.setItem("fireworksCount", fireworksCount);
     localStorage.setItem("spinTime", spinTime);

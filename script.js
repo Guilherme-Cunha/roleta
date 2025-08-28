@@ -513,23 +513,23 @@ btnSave.onclick = () => {
 		return false;
 	}
 
-	if (fireworksCount > 10) {
-		showToast("Quantos foguetes!!! Cuidado, estamos quase chamando os bombeiros.", "info");
-	}
-
 	if (spinTime < 1 || !spinTime) {
 		showToast("O tempo de execução deve ser de pelo menos 1 (um) segundo!", "warning");
 		return false;
-	}
-
-	if (spinTime > 29000) {
-		showToast("Ah, claro… vamos deixar a roleta girando até o café esfriar.", "info");
 	}
 	
     localStorage.setItem("fireworksCount", fireworksCount);
     localStorage.setItem("spinTime", spinTime);
 
     showToast("Configurações salvas!", "success");
+
+	if (fireworksCount > 10) {
+		showToast("Quantos foguetes!!! Cuidado, estamos quase chamando os bombeiros.", "info", 10000);
+	}
+
+	if (spinTime > 29000) {
+		showToast("Ah, claro… vamos deixar a roleta girando até o café esfriar.", "info", 10000);
+	}
     modal.style.display = "none";
 };
 

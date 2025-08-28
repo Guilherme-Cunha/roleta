@@ -134,7 +134,7 @@ function setupWheel() {
 
 let blinkFatiaId = null; // fatia que vai "respirar"
 
-function drawWheel(blinkId = null) {
+function drawWheel(blinkId = null, alpha = 1) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.shadowColor = "rgba(0,255,0,0.5)";
@@ -142,16 +142,12 @@ function drawWheel(blinkId = null) {
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 
-    const time = performance.now() / 500; // controla a velocidade da respiração
-    const alpha = 0.5 + 0.5 * Math.sin(time); // varia entre 0 e 1 suavemente
-
     for (let i = 0; i < entries.length; i++) {
         const entry = entries[i];
         const angle = startAngle + i * arc;
 
-        // Se for a fatia vencedora, aplica a opacidade "respirante"
         if (blinkId && entry.id === blinkId) {
-            ctx.fillStyle = hexToRgba(entry.color, alpha); // função para converter HEX/HSL para rgba
+            ctx.fillStyle = hexToRgba(entry.color, alpha);
         } else {
             ctx.fillStyle = entry.color;
         }
@@ -173,20 +169,39 @@ function drawWheel(blinkId = null) {
         ctx.fillText(entry.name, -ctx.measureText(entry.name).width / 2, 0);
         ctx.restore();
     }
-
     ctx.shadowBlur = 0;
 }
 
-// Função auxiliar para converter HEX para rgba com alpha
+// Função auxiliar para converter HEX/HSL para RGBA
 function hexToRgba(hex, alpha = 1) {
     let r = 0, g = 0, b = 0;
-    if (hex.length === 7) {
-        r = parseInt(hex.slice(1, 3), 16);
-        g = parseInt(hex.slice(3, 5), 16);
-        b = parseInt(hex.slice(5, 7), 16);
+    if (hex.startsWith('hsl')) {
+        // Se usar hsl, podemos converter para rgb aproximado
+        const hsl = hex.match(/[\d.]+/g);
+        const h = Number(hsl[0]);
+        const s = Number(hsl[1]) / 100;
+        const l = Number(hsl[2]) / 100;
+        const a = l <= 0.5 ? l * (1 + s) : l + s - l * s;
+        const f = 2 * l - a;
+        function hue2rgb(f, a, b) {
+            if (b < 0) b += 1;
+            if (b > 1) b -= 1;
+            if (b < 1 / 6) return f + (a - f) * 6 * b;
+            if (b < 1 / 2) return a;
+            if (b < 2 / 3) return f + (a - f) * (2/3 - b) * 6;
+            return f;
+        }
+        r = Math.round(hue2rgb(f, a, h/360 + 1/3) * 255);
+        g = Math.round(hue2rgb(f, a, h/360) * 255);
+        b = Math.round(hue2rgb(f, a, h/360 - 1/3) * 255);
+    } else if (hex.length === 7) {
+        r = parseInt(hex.slice(1,3),16);
+        g = parseInt(hex.slice(3,5),16);
+        b = parseInt(hex.slice(5,7),16);
     }
     return `rgba(${r},${g},${b},${alpha})`;
 }
+
 
 // Loop contínuo de animação para a fatia piscante
 function animateBlink() {
@@ -195,10 +210,6 @@ function animateBlink() {
         requestAnimationFrame(animateBlink);
     }
 }
-
-// Para iniciar a respiração, por exemplo quando mostrar o vencedor:
-blinkFatiaId = winnerEntry.id;
-animateBlink();
 
 function spin() {
 	if (entries.length > 0) {
@@ -265,42 +276,56 @@ function easeOut(t, b, c, d) {
 }
 
 function showWinner(entry) {
-	sound.currentTime = 1;
-	sound.volume = 0.3;
+    sound.currentTime = 1;
+    sound.volume = 0.3;
     sound.play();
     fireworks();
     document.getElementById('winner').innerHTML = `<strong>${entry.name}</strong>`;
     document.getElementById('modal').style.display = 'flex';
 
+    // Cancelar qualquer blink anterior
     if (blinkInterval) {
-        clearInterval(blinkInterval);
+        cancelAnimationFrame(blinkInterval);
         blinkInterval = null;
         drawWheel();
     }
 
     const winnerId = entry.id;
-    let visible = true;
+    let animating = true;
 
-    blinkInterval = setInterval(() => {
-        visible = !visible;
-        drawWheel(winnerId, visible);
-    }, 300);
+    // Função de animação contínua para a fatia "respirar"
+    function animateBlink() {
+        if (!animating) return;
+
+        const time = performance.now() / 500; // controla a velocidade da respiração
+        const alpha = 0.7 + 0.3 * Math.sin(time); // varia suavemente entre 0.7 e 1
+
+        drawWheel(winnerId, alpha); // modificaremos drawWheel para aceitar alpha
+
+        blinkInterval = requestAnimationFrame(animateBlink);
+    }
+
+    // Inicia a animação
+    animateBlink();
 
     document.getElementById('okBtn').onclick = () => {
-        clearInterval(blinkInterval);
+        animating = false;
+        cancelAnimationFrame(blinkInterval);
         blinkInterval = null;
-        entries = entries.filter(e => e.id !== winnerId);
 
+        // Remove a fatia vencedora
+        entries = entries.filter(e => e.id !== winnerId);
         if (entries.length > 0) {
             arc = Math.PI * 2 / entries.length;
         }
         startAngle = 0;
         document.getElementById('modal').style.display = 'none';
-        drawWheel();
+        drawWheel(); // redesenha a roda sem a fatia vencedora
         animateIdle();
         document.getElementById('spinBtn').disabled = false;
     };
 }
+
 
 function fireworks() {
     const colors = generateDistinctColors(10);
@@ -556,18 +581,6 @@ btnSave.onclick = () => {
     localStorage.setItem("spinTime", spinTime);
 
     showToast("Configurações salvas!", "success");
-
-	if (fireworksCount > 10) {
-		showToast("Quantos foguetes!!! Cuidado, estamos quase chamando os bombeiros.", "info", 10000);
-	}
-
-	if (spinTime < 7000) {
-		showToast("Cuidado! Girar tão rápido pode causar tontura virtual.", "info", 10000);
-	}
-	
-	if (spinTime > 29000) {
-		showToast("Ah, claro… vamos deixar a roleta girando até o café esfriar.", "info", 10000);
-	}
     modal.style.display = "none";
 };
 

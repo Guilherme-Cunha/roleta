@@ -126,6 +126,7 @@ function setupWheel() {
     arc = Math.PI * 2 / entries.length;
     drawWheel();
     document.getElementById('spinBtn').style.display = 'block';
+	showToast("Roleta gerada com sucesso!");
 }
 
 function drawWheel(blinkId = null, visible = true) {
@@ -510,6 +511,16 @@ btnSave.onclick = () => {
     const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
     const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
 
+	if (fireworksCount == 0) {
+		showToast("Número de foguetes não pode ser igual a zero (0)!");
+		return false;
+	}
+
+	if (spinTime == 0) {
+		showToast("O tempo de execução não pode ser igual a zero (0)!");
+		return false;
+	}
+	
     localStorage.setItem("fireworksCount", fireworksCount);
     localStorage.setItem("spinTime", spinTime);
 
@@ -529,6 +540,24 @@ numericInputs.forEach(input => {
 document.addEventListener('contextmenu', function (e) {
 	e.preventDefault();
 });
+
+function showToast(message, duration = 5000) {
+    const container = document.getElementById("toastContainer");
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    // Força o reflow antes de adicionar a classe .show
+    setTimeout(() => toast.classList.add("show"), 50);
+
+    // Remove após o tempo definido
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => container.removeChild(toast), 500);
+    }, duration);
+}
 
 // Inicialização
 window.onload = () => {

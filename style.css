@@ -44,7 +44,6 @@ body {
 }
 
 .close {
-    color: #333;
     float: right;
     font-size: 24px;
     cursor: inherit;

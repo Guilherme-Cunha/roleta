@@ -516,12 +516,6 @@ document.head.appendChild(style);
 
 // script.js (adicione ao final do arquivo, ou onde concentra seus handlers)
 document.addEventListener('DOMContentLoaded', () => {
-	const checkbox = document.getElementById('toggleSpeechTimer');
-	checkbox.addEventListener('change', () => {
-		showSpeechTimer = checkbox.checked;
-		resetTimer(); // sempre reseta ao ativar/desativar
-	});
-	
 	const boneco = document.getElementById('boneco');
     const spinBtn = document.getElementById('spinBtn');
 
@@ -600,6 +594,9 @@ btnClose.onclick = () => {
 btnSave.onclick = () => {
     const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
     const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
+	const checkbox = document.getElementById('toggleSpeechTimer');
+
+	showSpeechTimer = checkbox.checked;
 
 	if (fireworksCount < 1 || !fireworksCount) {
 		showToast("Número de foguetes deve ser maior ou igual a 1 (um)!", "warning");

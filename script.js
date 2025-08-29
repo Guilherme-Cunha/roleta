@@ -130,6 +130,7 @@ function setupWheel() {
     drawWheel();
     document.getElementById('spinBtn').style.display = 'block';
 	showToast("Roleta gerada com sucesso!", "info");
+	resetTimer(); // reseta para 00:00
 }
 
 let blinkFatiaId = null; // fatia que vai "respirar"
@@ -213,6 +214,7 @@ function animateBlink() {
 
 function spin() {
 	if (entries.length > 0) {
+		startTimer(); // inicia a contagem
 		setTimeout(() => {
 			starded = 1;
 			const spinBtn = document.getElementById('spinBtn');
@@ -280,7 +282,6 @@ function showWinner(entry) {
     sound.volume = 0.3;
     sound.play();
     fireworks();
-	resetTimer(); // reseta para 00:00
     document.getElementById('winner').innerHTML = `<strong>${entry.name}</strong>`;
     document.getElementById('modal').style.display = 'flex';
 
@@ -308,8 +309,6 @@ function showWinner(entry) {
 
     // Inicia a animação
     animateBlink();
-	
-	startTimer(); // inicia a contagem
 
     document.getElementById('okBtn').onclick = () => {
         animating = false;
@@ -326,10 +325,8 @@ function showWinner(entry) {
         drawWheel(); // redesenha a roda sem a fatia vencedora
         animateIdle();
         document.getElementById('spinBtn').disabled = false;
-		pauseTimer(); // pausa temporariamente
     };
 }
-
 
 function fireworks() {
     const colors = generateDistinctColors(10);

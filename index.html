@@ -18,12 +18,12 @@
   <div class="container">
     <div id="inputArea">
       <textarea id="names" placeholder="Digite os nomes separados por vírgula ou por enter" spellcheck="false"></textarea><br>
-      <button id="openConfig" class="gear-btn">⚙️</button>
-	  <button onclick="setupWheel()">Gerar Roleta</button>
+      <button id="openConfig" class="gear-btn" title="Configure sua roleta.">⚙️</button>
+	  <button onclick="setupWheel()" title="Clique para gerar a roleta, e alterar as cores.">Gerar Roleta</button>
     </div>
     <div id="wheelContainer">
       <canvas id="wheel" width="605" height="605"></canvas>
-      <button id="spinBtn" onclick="spin()" style="display:none;">Clique para Girar</button>
+      <button id="spinBtn" onclick="spin()" style="display:none;" title="Gire para sortear o próximo.">Clique para Girar</button>
 	  <!-- BONEQUINHO (palitinho em SVG) -->
 	<div class="boneco" id="boneco" aria-hidden="true">
 	  <svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">

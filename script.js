@@ -229,6 +229,8 @@ function spin() {
 
 			rotateWheel();
 		}, 1500);
+	} else {
+		showToast("Essa rodada terminou, gere novamente a roleta para continuar!", "info");
 	}
 }
 

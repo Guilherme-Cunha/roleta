@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://guilherme-cunha.github.io/roleta/sitemap.xml

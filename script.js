@@ -585,7 +585,7 @@ btnClose.onclick = () => {
 	if (parseInt(localStorage.getItem("spinTime")) !== spinTime) {
 		isDirty = true;
 	}
-	if (document.getElementById('speechTimer').style.display !== showSpeechTimer) {
+	if (document.getElementById('toggleSpeechTimer').checked !== showSpeechTimer) {
 		isDirty = true;
 	}
 

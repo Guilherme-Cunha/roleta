@@ -325,6 +325,10 @@ function showWinner(entry) {
         drawWheel(); // redesenha a roda sem a fatia vencedora
         animateIdle();
         document.getElementById('spinBtn').disabled = false;
+
+		if (entries.length === 0) {
+			pauseTimer(); // pausa temporariamente
+		}
     };
 }
 

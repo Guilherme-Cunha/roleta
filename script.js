@@ -574,7 +574,28 @@ const btnClose = document.getElementById("closeModal");
 const btnSave = document.getElementById("saveConfig");
 
 btnOpen.onclick = () => modal.style.display = "block";
-btnClose.onclick = () => modal.style.display = "none";
+btnClose.onclick = () => {
+	let isDirty = false;
+	const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
+    const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
+	
+	if (parseInt(localStorage.getItem("fireworksCount")) !== fireworksCount) {
+		isDirty = true;
+	}
+	if (parseInt(localStorage.getItem("spinTime")) !== spinTime) {
+		isDirty = true;
+	}
+	if (document.getElementById('speechTimer').style.display !== showSpeechTimer) {
+		isDirty = true;
+	}
+
+	if (isDirty) {
+		const sair = confirm("Alterações não salvas, tem certeza que deseja fechar?");
+		if (!sair) return;
+	}
+	
+	modal.style.display = "none";
+};
 
 btnSave.onclick = () => {
     const fireworksCount = parseInt(document.getElementById("fireworksCount").value);

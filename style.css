@@ -69,6 +69,7 @@ body {
     transform: translateX(120%);
     transition: all 0.5s ease;
     font-family: Arial, sans-serif;
+    font-weight: bold;
     min-width: 220px;
     white-space: pre-line; /* respeita \n */
   }

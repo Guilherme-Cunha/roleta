@@ -630,11 +630,21 @@ btnSave.onclick = () => {
 };
 
 const numericInputs = document.querySelectorAll('#fireworksCount, #spinTime');
+const fireworksCount = document.getElementById('fireworksCount');
+const spinTime = document.getElementById('spinTime');
 
 numericInputs.forEach(input => {
     input.addEventListener('input', () => {
         // Remove qualquer caractere que não seja dígito
         input.value = input.value.replace(/\D/g, '');
+
+		if (fireworksCount.value > 15) {
+	        fireworksCount.value = 15;
+	    }
+
+		if (spinTime.value > 60) {
+	        spinTime.value = 60;
+	    }
     });
 });
 

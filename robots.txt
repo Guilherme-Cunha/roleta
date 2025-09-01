@@ -1,4 +1,6 @@
+# Permite que todos os bots indexem o site
 User-agent: *
 Allow: /
 
+# Localização do sitemap
 Sitemap: https://guilherme-cunha.github.io/roleta/sitemap.xml

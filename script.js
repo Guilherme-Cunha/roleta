@@ -669,18 +669,26 @@ function showToast(message, type = 'info', duration = 5000) {
 
   container.appendChild(toast);
 
-  // animação de entrada
+  // Animação de entrada
   setTimeout(() => toast.classList.add("show"), 50);
 
-  // animação da barra
+  // Animação da barra
   progress.style.transition = `width ${duration}ms linear`;
   setTimeout(() => progress.style.width = "0%", 50);
 
-  // animação de saída
-  setTimeout(() => {
+  // Função para remover o toast
+  const removeToast = () => {
     toast.classList.remove("show");
-    setTimeout(() => container.removeChild(toast), 500);
-  }, duration);
+    setTimeout(() => {
+      if (container.contains(toast)) container.removeChild(toast);
+    }, 500);
+  };
+
+  // Fecha ao clicar
+  toast.addEventListener('click', removeToast);
+
+  // Fecha automaticamente após o tempo
+  setTimeout(removeToast, duration);
 }
   
 let timer = 0;

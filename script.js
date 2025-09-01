@@ -657,22 +657,31 @@ document.addEventListener('contextmenu', function (e) {
 });
 
 function showToast(message, type = 'info', duration = 5000) {
-    const container = document.getElementById("toastContainer");
-    const toast = document.createElement("div");
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
+  const container = document.getElementById("toastContainer");
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.innerHTML = message.replace(/\n/g, "<br>");
 
-    container.appendChild(toast);
+  // Cria a barra de progresso
+  const progress = document.createElement("div");
+  progress.className = "toast-progress";
+  toast.appendChild(progress);
 
-    // animação de entrada
-    setTimeout(() => toast.classList.add("show"), 50);
+  container.appendChild(toast);
 
-    // animação de saída
-    setTimeout(() => {
-      toast.classList.remove("show");
-      setTimeout(() => container.removeChild(toast), 500);
-    }, duration);
-  }
+  // animação de entrada
+  setTimeout(() => toast.classList.add("show"), 50);
+
+  // animação da barra
+  progress.style.transition = `width ${duration}ms linear`;
+  setTimeout(() => progress.style.width = "0%", 50);
+
+  // animação de saída
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => container.removeChild(toast), 500);
+  }, duration);
+}
   
 let timer = 0;
 let timerInterval = null;

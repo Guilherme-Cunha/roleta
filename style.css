@@ -79,10 +79,10 @@ body {
   }
 
   /* Tipos de toast */
-  .toast.success { background: #4caf50; }   /* verde */
-  .toast.error   { background: #f44336; }   /* vermelho */
-  .toast.info    { background: #2196f3; }   /* azul */
-  .toast.warning { background: #ff9800; }   /* laranja */
+  .toast.success { background: #90EE90; }   /* verde */
+  .toast.error   { background: #F44336; }   /* vermelho */
+  .toast.info    { background: #0000FF; }   /* azul */
+  .toast.warning { background: #FFA500; }   /* laranja */
 
 .toast-progress {
   position: absolute;

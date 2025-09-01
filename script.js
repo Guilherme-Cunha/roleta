@@ -105,7 +105,7 @@ function generateDistinctColors(n) {
 function setupWheel() {
     const input = document.getElementById('names').value;
     if (!input) {
-		showToast("Informe pelo menos um nome para gerar a roleta!", "info");
+		showToast("ℹ️ Informe pelo menos um nome para gerar a roleta!", "info");
 		return;
 	}
 
@@ -129,7 +129,7 @@ function setupWheel() {
     arc = Math.PI * 2 / entries.length;
     drawWheel();
     document.getElementById('spinBtn').style.display = 'block';
-	showToast("Roleta gerada com sucesso!", "info");
+	showToast("🎉 Roleta gerada com sucesso!", "info");
 	resetTimer(); // reseta para 00:00
 }
 
@@ -230,7 +230,7 @@ function spin() {
 			rotateWheel();
 		}, 1500);
 	} else {
-		showToast("Essa rodada terminou, gere novamente a roleta para continuar!", "info");
+		showToast("ℹ️ Essa rodada terminou, gere novamente a roleta para continuar!", "info");
 	}
 }
 
@@ -599,12 +599,12 @@ btnSave.onclick = () => {
 	showSpeechTimer = checkbox.checked;
 
 	if (fireworksCount < 1 || !fireworksCount) {
-		showToast("Número de foguetes deve ser maior ou igual a 1 (um)!", "warning");
+		showToast("⚠️ Número de foguetes deve ser maior ou igual a 1 (um)!", "warning");
 		return false;
 	}
 
 	if (spinTime < 1 || !spinTime) {
-		showToast("O tempo de execução deve ser de pelo menos 1 (um) segundo!", "warning");
+		showToast("⚠️ O tempo de execução deve ser de pelo menos 1 (um) segundo!", "warning");
 		return false;
 	}
 	
@@ -612,22 +612,22 @@ btnSave.onclick = () => {
     localStorage.setItem("spinTime", spinTime);
 	document.getElementById('speechTimer').style.display = showSpeechTimer ? 'block' : 'none';
 
-    showToast("Configurações salvas!", "success");
+    showToast("✅ Configurações salvas!", "success");
 
 	if (fireworksCount > 15) {
-		showToast("Quantos foguetes!!! Cuidado, estamos quase chamando os bombeiros.", "info", 10000);
+		showToast("ℹ️ Quantos foguetes❗❗❗\nCuidado, estamos quase chamando os bombeiros 🚒💨🔥👨‍🚒", "info", 12000);
 	}
 
 	if (fireworksCount < 5) {
-		showToast("Olha a animação subindo… devagarzinho 😅🚀", "info", 10000);
+		showToast("ℹ️ Olha a animação subindo… devagarzinho 😅🚀", "info", 10000);
 	}
 
 	if (spinTime < 7000) {
-		showToast("Cuidado! Girar tão rápido pode causar tontura virtual.", "info", 15000);
+		showToast("ℹ️ Cuidado! Girar tão rápido pode causar tontura virtual 😅", "info", 15000);
 	}
 	
 	if (spinTime > 20000) {
-		showToast("Ah, claro… vamos deixar a roleta girando até o café esfriar.", "info", 20000);
+		showToast("ℹ️ Ah, claro… vamos deixar a roleta girando até o café esfriar 🙄", "info", 20000);
 	}
 	
     modal.style.display = "none";

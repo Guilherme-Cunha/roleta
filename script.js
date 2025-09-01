@@ -638,8 +638,8 @@ numericInputs.forEach(input => {
         // Remove qualquer caractere que não seja dígito
         input.value = input.value.replace(/\D/g, '');
 
-		if (fireworksCount.value > 15) {
-	        fireworksCount.value = 15;
+		if (fireworksCount.value > 100) {
+	        fireworksCount.value = 100;
 	    }
 
 		if (spinTime.value > 60) {

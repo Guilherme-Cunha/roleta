@@ -90,7 +90,8 @@ body {
   left: 0;
   height: 3px;
   background: #2DEB31;
-  margin-left: 1px;
+  margin-left: 4px;
+  border-radius: 15px;
   width: 99%;
 }
 

@@ -615,7 +615,7 @@ btnSave.onclick = () => {
     showToast("✅ Configurações salvas!", "success");
 
 	if (fireworksCount > 15) {
-		showToast("ℹ️ Quantos foguetes❗❗❗\nCuidado, estamos quase chamando os bombeiros 🚒💨🔥👨‍🚒", "info", 12000);
+		showToast("ℹ️ Quantos foguetes!!!\n\nCuidado, estamos quase chamando os bombeiros 🚒💨🔥👨‍🚒", "info", 12000);
 	}
 
 	if (fireworksCount < 5) {

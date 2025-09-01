@@ -579,19 +579,19 @@ btnSave.onclick = () => {
     showToast("✅ Configurações salvas!", "success");
 
 	if (fireworksCount > 15) {
-		showToast("ℹ️ Quantos foguetes!!!\n\nCuidado, estamos quase chamando os bombeiros 🚒💨🔥👨‍🚒", "info", 12000);
+		showToast("ℹ️ Quantos foguetes!!!\n\nCuidado, estamos quase chamando os bombeiros 🚒💨🔥👨‍🚒", "info", 10000);
 	}
 
 	if (fireworksCount < 5) {
-		showToast("ℹ️ Olha a animação subindo… devagarzinho 😅🚀", "info", 10000);
+		showToast("ℹ️ Olha a animação subindo… devagarzinho 😅🚀", "info", 8000);
 	}
 
 	if (spinTime < 7000) {
-		showToast("ℹ️ Cuidado!!!\n\nGirar tão rápido pode causar tontura virtual 🌀😅", "info", 15000);
+		showToast("ℹ️ Cuidado!!!\n\nGirar tão rápido pode causar tontura virtual 🌀😅", "info", 8000);
 	}
 	
 	if (spinTime > 20000) {
-		showToast("ℹ️ Ah, claro… vamos deixar a roleta girando até o café esfriar 🙄", "info", 20000);
+		showToast("ℹ️ Ah, claro… vamos deixar a roleta girando até o café esfriar 🙄", "info", 8000);
 	}
 	
     modal.style.display = "none";

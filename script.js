@@ -623,7 +623,7 @@ btnSave.onclick = () => {
 	}
 
 	if (spinTime < 7000) {
-		showToast("ℹ️ Cuidado! Girar tão rápido pode causar tontura virtual 😅", "info", 15000);
+		showToast("ℹ️ Cuidado!!!\n\nGirar tão rápido pode causar tontura virtual 🌀😅", "info", 15000);
 	}
 	
 	if (spinTime > 20000) {

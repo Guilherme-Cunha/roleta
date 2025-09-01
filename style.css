@@ -83,7 +83,7 @@ body {
   .toast.success { background: #228B22; }   /* verde */
   .toast.error   { background: #F44336; }   /* vermelho */
   .toast.info    { background: #0000FF; }   /* azul */
-  .toast.warning { background: #FFA500; }   /* laranja */
+  .toast.warning { background: #FF8C00; }   /* laranja */
 
 .toast-progress {
   position: absolute;

@@ -1,41 +1,37 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=5.0">
-  <meta name="robots" content="index, follow">
-  <meta name="google-site-verification" content="-O_mVgoZhh3Gu5EPZhUriaC60GraJK6rf-ABrgYb4c4" />
-
-  <!-- Content Security Policy (limitada, mas funcional via meta) -->
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'unsafe-inline';
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    font-src 'self' https://fonts.gstatic.com;
-    img-src 'self' data: https:;
-  ">
-
-  <!-- SEO Básico -->
-  <meta name="description" content="Gire a roleta de nomes online de forma rápida e divertida. Ideal para sorteios entre amigos, grupos ou eventos.">
-  <meta name="author" content="Guilherme Cunha" />
-
-  <!-- Open Graph -->
-  <meta property="og:title" content="Roleta de Nomes - Sorteios Online" />
-  <meta property="og:description" content="Use esta roleta interativa para realizar sorteios de forma divertida e prática." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://guilherme-cunha.github.io/roleta/" />
-  <meta property="og:image" content="https://guilherme-cunha.github.io/roleta/imagens/thumbnail.png" />
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Roleta de Nomes - Sorteios Online" />
-  <meta name="twitter:description" content="Sorteios rápidos e divertidos com a Roleta de Nomes online." />
-  <meta name="twitter:image" content="https://guilherme-cunha.github.io/roleta/imagens/thumbnail.png" />
-  <meta name="twitter:creator" content="@guicunha1188" />
-
-  <title>Roleta de Nomes</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" type="image/png" href="favicon.png">
+   <meta charset="UTF-8" />
+   <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=5.0">
+   <meta name="robots" content="index, follow">
+   <meta name="google-site-verification" content="-O_mVgoZhh3Gu5EPZhUriaC60GraJK6rf-ABrgYb4c4" />
+   <!-- Política CSP para mitigar XSS --> 
+   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+   <!-- Impedir clickjacking --> 
+   <meta http-equiv="X-Frame-Options" content="DENY">
+   <!-- Cross-Origin Isolation --> 
+   <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+   <!-- HSTS (não é 100% eficaz por meta, melhor via servidor/CDN) --> 
+   <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains; preload">
+   <!-- SEO Básico --> 
+   <meta name="description" content="Gire a roleta de nomes online de forma rápida e divertida. Ideal para sorteios entre amigos, grupos ou eventos.">
+   <meta name="keywords" content="roleta de nomes, sorteio online, roleta grátis, sorteio de amigos, roleta interativa, sorteio de grupo, roleta personalizada, sorteio divertido, roleta aleatória, roleta para eventos">
+   <meta name="author" content="Guilherme Cunha" />
+   <!-- Open Graph (Facebook, LinkedIn, WhatsApp) --> 
+   <meta property="og:title" content="Roleta de Nomes - Sorteios Online" />
+   <meta property="og:description" content="Use esta roleta interativa para realizar sorteios de forma divertida e prática." />
+   <meta property="og:type" content="website" />
+   <meta property="og:url" content="https://guilherme-cunha.github.io/roleta/" />
+   <meta property="og:image" content="https://guilherme-cunha.github.io/roleta/imagens/thumbnail.png" />
+   <!-- Twitter Card --> 
+   <meta name="twitter:card" content="summary_large_image" />
+   <meta name="twitter:title" content="Roleta de Nomes - Sorteios Online" />
+   <meta name="twitter:description" content="Sorteios rápidos e divertidos com a Roleta de Nomes online." />
+   <meta name="twitter:image" content="https://guilherme-cunha.github.io/roleta/imagens/thumbnail.png" />
+   <meta name="twitter:creator" content="@guicunha1188" />
+   <title>Roleta de Nomes</title>
+   <link rel="stylesheet" href="style.css">
+   <link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body>
   <canvas id="matrixCanvas"></canvas>

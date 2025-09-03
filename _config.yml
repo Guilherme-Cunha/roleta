@@ -1,0 +1,7 @@
+title: "Roleta Online"
+description: "Simulador de roleta grátis e divertido"
+url: "https://guilherme-cunha.github.io/roleta" # URL base do seu site
+author: "Guilherme Cunha"
+
+plugins:
+  - jekyll-seo-tag

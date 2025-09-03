@@ -1,7 +1,10 @@
-title: "Roleta Online"
-description: "Simulador de roleta grátis e divertido"
-url: "https://guilherme-cunha.github.io/roleta" # URL base do seu site
+title: "Roleta de Nomes"
+description: "Gire a roleta de nomes online de forma rápida e divertida. Ideal para sorteios entre amigos, grupos ou eventos."
+url: "https://guilherme-cunha.github.io/roleta"
 author: "Guilherme Cunha"
+
+twitter:
+  username: "guicunha1188"
 
 plugins:
   - jekyll-seo-tag

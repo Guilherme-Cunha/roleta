@@ -221,7 +221,7 @@ function spin() {
 			clearInterval(idleAnimation);
 			idleAnimation = null;
 			spinBtn.disabled = true;
-			spinAngleStart = Math.random() * 10 + 25;
+			spinAngleStart = Math.random() * (Math.random() * 7) + (Math.random() + 25);
 			spinTime = 0;
 
 			const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;

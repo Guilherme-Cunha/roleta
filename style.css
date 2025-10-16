@@ -313,7 +313,7 @@ button:disabled:hover::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(10px);
     z-index: 1000; /* Abaixo dos fogos */
     align-items: center;

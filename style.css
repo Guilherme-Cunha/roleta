@@ -200,7 +200,7 @@ button:disabled:hover::before {
 #pointer {
     position: absolute;
     top: 5px;
-    left: 48%;
+    left: 47%;
     transform: translateX(-50%);
     width: 40px;
     height: 40px;

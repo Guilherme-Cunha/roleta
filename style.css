@@ -222,7 +222,6 @@ button:disabled:hover::before {
     background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
     box-shadow: 0 6px 20px rgba(255, 0, 128, 0.4);
     animation: pulse 2s infinite;
-    display: block !important;
 }
 
 @keyframes pulse {

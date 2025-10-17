@@ -798,6 +798,20 @@ button:disabled:hover::before {
 }
 
 /* RESPONSIVIDADE */
+@media (max-width: 1920px) {
+	#wheel {
+        width: 700px;
+        height: 700px;
+    }
+}
+
+@media (max-width: 1536px) {
+	#wheel {
+        width: 600px;
+        height: 600px;
+    }
+}
+
 @media (max-width: 768px) {
     .container {
         flex-direction: column;

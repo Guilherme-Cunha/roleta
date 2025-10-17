@@ -9,7 +9,7 @@
     --primary-color: #00ff88;
     --primary-dark: #00cc6a;
     --secondary-color: #8a2be2;
-    --accent-color: #ff0080;
+    --accent-color: #e90e0e;
     --background-dark: #0a0a0a;
     --background-darker: #050505;
     --text-primary: #ffffff;
@@ -229,7 +229,7 @@ button:disabled:hover::before {
     50% { transform: translate(-50%, -50%) scale(1.05); }
 }
 
-/* ANIMAÇÃO DO BONECO */
+/* ANIMAÇÃO DO BONECO - VERSÃO MELHORADA */
 .boneco {
     position: absolute;
     left: -140px;
@@ -239,70 +239,346 @@ button:disabled:hover::before {
     opacity: 0;
     pointer-events: none;
     transform: translateX(0);
-    transition: transform 1.2s ease, opacity 0.8s ease;
+    transition: all 0.8s ease;
     z-index: 12;
+    filter: drop-shadow(0 0 15px var(--primary-color));
 }
 
 .boneco svg {
     width: 100%;
     height: 100%;
-    filter: drop-shadow(0 0 10px var(--primary-color));
+    transition: all 0.3s ease;
 }
 
+/* ENTRADA ESPECIAL - VINDO PULANDO */
 .boneco.ativo {
     opacity: 1;
     transform: translateX(260px);
+    animation: entradaEspecial 1.2s ease-out;
 }
 
+@keyframes entradaEspecial {
+    0% {
+        transform: translateX(0) translateY(-100px) rotate(-10deg);
+        opacity: 0;
+    }
+    20% {
+        transform: translateX(80px) translateY(-60px) rotate(5deg);
+        opacity: 0.8;
+    }
+    40% {
+        transform: translateX(160px) translateY(-30px) rotate(-3deg);
+    }
+    60% {
+        transform: translateX(220px) translateY(-10px) rotate(2deg);
+    }
+    80% {
+        transform: translateX(260px) translateY(5px) rotate(-1deg);
+    }
+    100% {
+        transform: translateX(260px) translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+/* ANIMAÇÃO DE RESPIRAÇÃO IDLE */
+.boneco.ativo:not(.empurrando):not(.saindo) {
+    animation: respirar 3s ease-in-out infinite;
+}
+
+@keyframes respirar {
+    0%, 100% { transform: translateX(260px) translateY(0px) scale(1); }
+    50% { transform: translateX(260px) translateY(-3px) scale(1.02); }
+}
+
+/* EMPURRÃO MAIS DRAMÁTICO */
 .boneco.empurrando {
-    animation: empurrar 3.2s ease;
+    animation: empurraoDramatico 3.2s ease-in-out;
 }
 
+@keyframes empurraoDramatico {
+    0% {
+        transform: translateX(260px);
+        animation-timing-function: ease-out;
+    }
+    15% {
+        transform: translateX(260px) translateY(-15px) scale(1.05);
+        animation-timing-function: ease-in;
+    }
+    30% {
+        transform: translateX(280px) translateY(5px) scale(0.95);
+        animation-timing-function: ease-out;
+    }
+    45% {
+        transform: translateX(250px) translateY(-10px) scale(1.03);
+        animation-timing-function: ease-in;
+    }
+    60% {
+        transform: translateX(270px) translateY(3px) scale(0.98);
+        animation-timing-function: ease-out;
+    }
+    75% {
+        transform: translateX(255px) translateY(-5px) scale(1.01);
+        animation-timing-function: ease-in;
+    }
+    90% {
+        transform: translateX(265px) translateY(2px) scale(0.99);
+        animation-timing-function: ease-out;
+    }
+    100% {
+        transform: translateX(260px) translateY(0px) scale(1);
+    }
+}
+
+/* SAÍDA COM ESTILO */
 .boneco.saindo {
-    opacity: 0;
-    transform: translateX(520px);
+    opacity: 1;
+    animation: saidaEstilosa 1.5s ease-in forwards;
 }
 
-@keyframes empurrar {
-    0%, 100% { transform: translateX(260px); }
-    25% { transform: translateX(260px) translateY(-10px); }
-    50% { transform: translateX(260px) translateX(20px) translateY(-5px); }
-    75% { transform: translateX(260px) translateX(-10px); }
+@keyframes saidaEstilosa {
+    0% {
+        transform: translateX(260px) translateY(0px) rotate(0deg);
+        opacity: 1;
+    }
+    20% {
+        transform: translateX(280px) translateY(-20px) rotate(5deg);
+        opacity: 0.9;
+    }
+    40% {
+        transform: translateX(320px) translateY(-40px) rotate(10deg);
+        opacity: 0.7;
+    }
+    60% {
+        transform: translateX(380px) translateY(-60px) rotate(15deg);
+        opacity: 0.5;
+    }
+    80% {
+        transform: translateX(450px) translateY(-80px) rotate(20deg);
+        opacity: 0.3;
+    }
+    100% {
+        transform: translateX(520px) translateY(-100px) rotate(25deg);
+        opacity: 0;
+    }
 }
 
-/* Animação de empurrar (balanço do braço direito) */
-@keyframes empurrarBraco {
+/* ANIMAÇÕES DETALHADAS DAS PARTES DO CORPO */
+
+/* CABEÇA BALANÇANDO */
+.boneco.ativo #cabeca {
+    animation: balancarCabeca 4s ease-in-out infinite;
+}
+
+@keyframes balancarCabeca {
     0%, 100% { transform: rotate(0deg); }
-    50% { transform: rotate(-40deg); }
+    25% { transform: rotate(3deg); }
+    75% { transform: rotate(-2deg); }
 }
 
+/* BRAÇOS - ANIMAÇÃO NATURAL */
+.boneco.ativo #braco {
+    transform-origin: 50px 70px;
+    animation: balancarBracos 2s ease-in-out infinite;
+}
+
+@keyframes balancarBracos {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(8deg); }
+}
+
+/* BRAÇO DIREITO ESPECÍFICO */
+.boneco.ativo #braco-direito {
+    transform-origin: 50px 70px;
+    animation: balancarBracoDireito 2.5s ease-in-out infinite;
+}
+
+@keyframes balancarBracoDireito {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-5deg); }
+}
+
+/* ANIMAÇÃO DE EMPURRÃO DOS BRAÇOS */
 .boneco.empurrando #braco {
     transform-origin: 50px 70px;
-    animation: empurrarBraco 0.8s ease-in-out 6;
+    animation: empurrarBraco 0.6s ease-in-out 4;
 }
 
-/* Animações das pernas */
-@keyframes perna-balanco {
-  0%, 100% { transform: rotate(18deg); }
-  50% { transform: rotate(-18deg); }
+.boneco.empurrando #braco-direito {
+    transform-origin: 50px 70px;
+    animation: empurrarBracoDireito 0.6s ease-in-out 4;
 }
 
+@keyframes empurrarBraco {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-45deg); }
+}
+
+@keyframes empurrarBracoDireito {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(35deg); }
+}
+
+/* PERNAS - CORRENDO NATURALMENTE */
 .boneco.ativo #perna-esquerda,
 .boneco.saindo #perna-esquerda {
-  transform-origin: 50px 120px;
-  animation: perna-balanco 0.45s linear infinite;
+    transform-origin: 50px 120px;
+    animation: correrPernaEsquerda 0.6s ease-in-out infinite;
 }
 
 .boneco.ativo #perna-direita,
 .boneco.saindo #perna-direita {
-  transform-origin: 50px 120px;
-  animation: perna-balanco 0.45s linear infinite reverse;
+    transform-origin: 50px 120px;
+    animation: correrPernaDireita 0.6s ease-in-out infinite;
 }
 
+@keyframes correrPernaEsquerda {
+    0%, 100% { transform: rotate(25deg); }
+    50% { transform: rotate(-15deg); }
+}
+
+@keyframes correrPernaDireita {
+    0%, 100% { transform: rotate(-15deg); }
+    50% { transform: rotate(25deg); }
+}
+
+/* PERNAS NO EMPURRÃO */
 .boneco.empurrando #perna-esquerda,
 .boneco.empurrando #perna-direita {
-  animation: none;
-  transform: rotate(0deg);
+    animation: pernasFirmes 0.3s ease-out;
+    transform: rotate(0deg);
+}
+
+@keyframes pernasFirmes {
+    0% { transform: rotate(10deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* EFEITOS VISUAIS EXTRAS */
+.boneco::before {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    width: 30px;
+    height: 5px;
+    background: rgba(0, 255, 136, 0.3);
+    border-radius: 50%;
+    transform: translateX(-50%);
+    filter: blur(3px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.boneco.ativo::before {
+    opacity: 1;
+    animation: sombraMovimento 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes sombraMovimento {
+    0% { 
+        width: 25px;
+        opacity: 0.3;
+    }
+    100% { 
+        width: 35px;
+        opacity: 0.5;
+    }
+}
+
+/* EFEITO DE PARTÍCULAS MÁGICAS */
+.boneco.ativo::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    right: -5px;
+    width: 8px;
+    height: 8px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    opacity: 0;
+    animation: particulasMagicas 2s ease-in-out infinite;
+}
+
+@keyframes particulasMagicas {
+    0% {
+        transform: translate(0, 0) scale(0);
+        opacity: 0;
+    }
+    25% {
+        transform: translate(-10px, -15px) scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translate(-20px, -30px) scale(0.8);
+        opacity: 0.6;
+    }
+    75% {
+        transform: translate(-30px, -45px) scale(0.6);
+        opacity: 0.4;
+    }
+    100% {
+        transform: translate(-40px, -60px) scale(0);
+        opacity: 0;
+    }
+}
+
+/* RESPONSIVIDADE PARA ANIMAÇÕES */
+@media (max-width: 768px) {
+    .boneco {
+        width: 60px;
+        height: 120px;
+        left: -100px;
+    }
+    
+    .boneco.ativo {
+        transform: translateX(200px);
+        animation: entradaEspecialMobile 1s ease-out;
+    }
+    
+    @keyframes entradaEspecialMobile {
+        0% {
+            transform: translateX(0) translateY(-80px) rotate(-10deg);
+            opacity: 0;
+        }
+        100% {
+            transform: translateX(200px) translateY(0) rotate(0deg);
+            opacity: 1;
+        }
+    }
+    
+    .boneco.saindo {
+        animation: saidaEstilosaMobile 1.2s ease-in forwards;
+    }
+    
+    @keyframes saidaEstilosaMobile {
+        0% {
+            transform: translateX(200px) translateY(0px);
+            opacity: 1;
+        }
+        100% {
+            transform: translateX(400px) translateY(-80px) rotate(20deg);
+            opacity: 0;
+        }
+    }
+}
+
+/* EFEITO DE DESTAQUE QUANDO CHEGA */
+@keyframes chegadaDestaque {
+    0% {
+        filter: drop-shadow(0 0 15px var(--primary-color));
+    }
+    50% {
+        filter: drop-shadow(0 0 30px var(--accent-color)) 
+                drop-shadow(0 0 20px var(--primary-color));
+    }
+    100% {
+        filter: drop-shadow(0 0 15px var(--primary-color));
+    }
+}
+
+.boneco.ativo {
+    animation: chegadaDestaque 0.5s ease-in-out 1;
 }
 
 /* MODAL DO VENCEDOR */

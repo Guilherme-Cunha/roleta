@@ -486,41 +486,47 @@ button:disabled:hover::before {
     }
 }
 
-/* EFEITO DE PARTÍCULAS MÁGICAS */
+/* EFEITO DE PARTÍCULAS MÁGICAS — VERSÃO BOLHA DE PENSAMENTO */
 .boneco.ativo::after {
-    content: '';
-    position: absolute;
-    top: 10px;
-    right: -5px;
-    width: 8px;
-    height: 8px;
-    background: var(--accent-color);
-    border-radius: 50%;
-    opacity: 0;
-    animation: particulasMagicas 2s ease-in-out infinite;
+	content: attr(data-texto); /* Agora exibe texto dinamicamente */
+	position: absolute;
+	top: -5px;
+	right: -10px;
+	padding: 4px 8px;
+	background: rgba(255, 255, 255, 0.9);
+	color: #333;
+	font-size: 9px;
+	border-radius: 50%;
+	border: 1px solid rgba(0,0,0,0.2);
+	box-shadow: 0 0 6px rgba(255,255,255,0.7);
+	pointer-events: none;
+	white-space: nowrap;
+	opacity: 0;
+	animation: particulasMagicas 2s ease-out infinite;
 }
 
+/* ANIMAÇÃO AJUSTADA PARA BOLHA DE PENSAMENTO */
 @keyframes particulasMagicas {
-    0% {
-        transform: translate(0, 0) scale(0);
-        opacity: 0;
-    }
-    25% {
-        transform: translate(-10px, -15px) scale(1);
-        opacity: 0.8;
-    }
-    50% {
-        transform: translate(-20px, -30px) scale(0.8);
-        opacity: 0.6;
-    }
-    75% {
-        transform: translate(-30px, -45px) scale(0.6);
-        opacity: 0.4;
-    }
-    100% {
-        transform: translate(-40px, -60px) scale(0);
-        opacity: 0;
-    }
+	0% {
+		transform: translate(0, 0) scale(0.2);
+		opacity: 0;
+	}
+	20% {
+		transform: translate(-10px, -12px) scale(1);
+		opacity: 1;
+	}
+	40% {
+		transform: translate(-18px, -25px) scale(0.95);
+		opacity: 0.8;
+	}
+	70% {
+		transform: translate(-28px, -42px) scale(0.7);
+		opacity: 0.5;
+	}
+	100% {
+		transform: translate(-38px, -60px) scale(0.4);
+		opacity: 0;
+	}
 }
 
 /* RESPONSIVIDADE PARA ANIMAÇÕES */

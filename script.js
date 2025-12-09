@@ -220,10 +220,16 @@ function spin() {
 			const spinBtn = document.getElementById('spinBtn');
 			clearInterval(idleAnimation);
 			idleAnimation = null;
+
 			spinBtn.disabled = true;
-			spinAngleStart = (Math.random() * (Date.now() % 100)) / 3.14 + 
-                (Math.random() * 42) + 
-                (performance.now() % 25);
+
+			// ----------------------------
+			// VELOCIDADE FIXA + RESULTADO ALEATÓRIO
+			// ----------------------------
+			spinAngleStart = 40;  // velocidade constante
+			startAngle += Math.random() * Math.PI * 2; // resultado continua aleatório
+			// ----------------------------
+
 			spinTime = 0;
 
 			const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;

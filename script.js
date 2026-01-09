@@ -662,6 +662,12 @@ function showToast(message, type = 'info', duration = 5000) {
   // Fecha automaticamente após o tempo
   setTimeout(removeToast, duration);
 }
+
+const namesInput = document.getElementById('names');
+
+namesInput.addEventListener('input', function () {
+	setupWheel();
+});
   
 let timer = 0;
 let timerInterval = null;

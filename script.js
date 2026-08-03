@@ -102,8 +102,49 @@ window.addEventListener('resize', resizeWheelCanvas);
 
 const sound = document.getElementById('sound');
 sound.volume = 0.3;
-const spinSound = document.getElementById('spinSound');
-spinSound.volume = 1;
+
+// TIQUE DA ROLETA — sintetizado via Web Audio API (não é um <audio> reaproveitado),
+// porque cada fatia cruzada precisa de um clique instantâneo e independente; reiniciar
+// um <audio> compartilhado (como acontecia antes) não gera um novo evento "play" e
+// trava o carregamento do arquivo.
+let tickAudioCtx = null;
+
+function getTickAudioCtx() {
+    if (!tickAudioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        tickAudioCtx = new AudioContextClass();
+    }
+    if (tickAudioCtx.state === 'suspended') {
+        tickAudioCtx.resume();
+    }
+    return tickAudioCtx;
+}
+
+function playTick(delaySeconds = 0) {
+    const audioCtx = getTickAudioCtx();
+    const startTime = audioCtx.currentTime + delaySeconds;
+    const pitch = 850 + Math.random() * 150; // pequena variação para não soar robótico
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(pitch, startTime);
+
+    gain.gain.setValueAtTime(0.25, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.04);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + 0.05);
+}
+
+function playTicks(count) {
+    const ticksToPlay = Math.min(count, 8); // evita "metralhadora" se várias fatias forem cruzadas no mesmo frame
+    for (let i = 0; i < ticksToPlay; i++) {
+        playTick(i * 0.015);
+    }
+}
 
 let startAngle = 0;
 let arc;
@@ -247,6 +288,7 @@ function animateBlink() {
 
 function spin() {
 	if (entries.length > 0) {
+		getTickAudioCtx(); // cria/retoma o AudioContext já dentro do gesto de clique
 		startTimer(); // inicia a contagem
 		setTimeout(() => {
 			starded = 1;
@@ -261,6 +303,7 @@ function spin() {
 			// ----------------------------
 			spinAngleStart = 40;  // velocidade constante
 			startAngle += Math.random() * Math.PI * 2; // resultado continua aleatório
+			lastTickAngle = startAngle; // evita uma rajada de tiques por causa do salto aleatório acima
 			// ----------------------------
 
 			spinTime = 0;
@@ -275,7 +318,7 @@ function spin() {
 	}
 }
 
-let lastTickAngle = 0; // nova variável global para controlar ticks
+let lastTickAngle = 0;
 
 function rotateWheel() {
     spinTime += 30;
@@ -287,14 +330,10 @@ function rotateWheel() {
     const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
     startAngle += (spinAngle * Math.PI) / 180;
 
-    // calcula quantas fatias foram cruzadas
     const crossedSlices = Math.floor(startAngle / arc) - Math.floor(lastTickAngle / arc);
-
     if (crossedSlices !== 0) {
-        spinSound.currentTime = 0;
-        spinSound.volume = 0.5;
-        spinSound.play();
-        lastTickAngle = startAngle; // atualiza a referência
+        playTicks(Math.abs(crossedSlices));
+        lastTickAngle = startAngle;
     }
 
     drawWheel();
@@ -303,8 +342,6 @@ function rotateWheel() {
 
 function stopRotateWheel() {
     clearTimeout(spinTimeout);
-    spinSound.pause();
-    spinSound.currentTime = 0;
 
     const degrees = (startAngle * 180) / Math.PI + 90;
     const arcd = (arc * 180) / Math.PI;

@@ -603,6 +603,7 @@ function showWinner(entry) {
     winnerEl.addEventListener('animationend', () => winnerEl.classList.remove('glitch'), { once: true });
 
     document.getElementById('modal').style.display = 'flex';
+    startBonecoVoador();
 
     // Cancelar qualquer blink anterior
     if (blinkInterval) {
@@ -633,6 +634,7 @@ function showWinner(entry) {
         animating = false;
         cancelAnimationFrame(blinkInterval);
         blinkInterval = null;
+        stopBonecoVoador();
 
         // Remove a fatia vencedora
         entries = entries.filter(e => e.id !== winnerId);
@@ -855,6 +857,65 @@ document.addEventListener('DOMContentLoaded', () => {
 	
     spinBtn.addEventListener('click', animarBoneco);
 });
+
+// ====================================================================
+// BONECO VOADOR — enquanto o modal do vencedor está aberto, um segundo
+// bonequinho (estilo "Neo desviando" do Matrix) cruza a tela voando: entra
+// por um lado, faz uma pausa dramática (o "desvio"), sai pelo outro lado e
+// some — em loop aleatório, até o usuário clicar OK.
+// ====================================================================
+let bonecoVoadorActive = false;
+let bonecoVoadorTimeout = null;
+
+function startBonecoVoador() {
+    bonecoVoadorActive = true;
+    bonecoVoadorLoop();
+}
+
+function stopBonecoVoador() {
+    bonecoVoadorActive = false;
+    clearTimeout(bonecoVoadorTimeout);
+    const el = document.getElementById('bonecoVoador');
+    el.getAnimations().forEach(anim => anim.cancel());
+    el.style.opacity = '0';
+}
+
+// Agenda a próxima passada voadora em um intervalo aleatório
+function bonecoVoadorLoop() {
+    if (!bonecoVoadorActive) return;
+    voarBoneco();
+    bonecoVoadorTimeout = setTimeout(bonecoVoadorLoop, 900 + Math.random() * 1400);
+}
+
+// Monta uma passada: entra de um lado aleatório da tela, faz uma pausa com
+// inclinação dramática no meio do caminho (o "desvio" estilo bullet-time),
+// depois sai acelerando pelo lado oposto e desaparece
+function voarBoneco() {
+    const el = document.getElementById('bonecoVoador');
+    const larguraTela = window.innerWidth;
+
+    const entraPelaEsquerda = Math.random() < 0.5;
+    const entradaX = entraPelaEsquerda ? -150 : larguraTela + 150;
+    const saidaX = entraPelaEsquerda ? larguraTela + 150 : -150;
+    const pausaX = larguraTela * (0.25 + Math.random() * 0.5); // pausa entre 25% e 75% da largura
+
+    const alturaVh = 15 + Math.random() * 60; // evita ficar muito perto do topo/rodapé
+    el.style.top = alturaVh + 'vh';
+
+    // ângulo "deitado" apontando na direção do voo, e mais inclinado ainda na pausa (o desvio)
+    const anguloBase = entraPelaEsquerda ? 70 : -70;
+    const anguloDesvio = entraPelaEsquerda ? 110 : -110;
+
+    el.getAnimations().forEach(anim => anim.cancel());
+    el.animate([
+        { transform: `translateX(${entradaX}px) rotate(${anguloBase}deg) scale(0.85)`, opacity: 0 },
+        { transform: `translateX(${(entradaX + pausaX) / 2}px) rotate(${anguloBase}deg) scale(1)`, opacity: 1, offset: 0.22 },
+        { transform: `translateX(${pausaX}px) rotate(${anguloDesvio}deg) scale(1.15)`, opacity: 1, offset: 0.45 },
+        { transform: `translateX(${pausaX}px) rotate(${anguloDesvio}deg) scale(1.15)`, opacity: 1, offset: 0.62 },
+        { transform: `translateX(${(pausaX + saidaX) / 2}px) rotate(${anguloBase}deg) scale(0.95)`, opacity: 1, offset: 0.82 },
+        { transform: `translateX(${saidaX}px) rotate(${anguloBase}deg) scale(0.8)`, opacity: 0 }
+    ], { duration: 1600 + Math.random() * 600, easing: 'ease-in-out' });
+}
 
 // ====================================================================
 // MODAL DE CONFIGURAÇÕES — quantidade de foguetes, tempo de giro e o

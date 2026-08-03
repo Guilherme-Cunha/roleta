@@ -740,6 +740,7 @@ button:disabled:hover::before {
    um novo containing block pra descendentes fixed, então ele precisa estar
    fora dessa árvore — por isso este elemento é filho direto do <body>). */
 .boneco-voador {
+    display: none; /* DESABILITADO */
     position: fixed;
     top: 50%;
     left: 0;

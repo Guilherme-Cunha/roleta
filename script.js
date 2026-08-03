@@ -603,7 +603,7 @@ function showWinner(entry) {
     winnerEl.addEventListener('animationend', () => winnerEl.classList.remove('glitch'), { once: true });
 
     document.getElementById('modal').style.display = 'flex';
-    startBonecoVoador();
+    // startBonecoVoador();
 
     // Cancelar qualquer blink anterior
     if (blinkInterval) {
@@ -634,7 +634,7 @@ function showWinner(entry) {
         animating = false;
         cancelAnimationFrame(blinkInterval);
         blinkInterval = null;
-        stopBonecoVoador();
+        // stopBonecoVoador();
 
         // Remove a fatia vencedora
         entries = entries.filter(e => e.id !== winnerId);
@@ -859,11 +859,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ====================================================================
-// BONECO VOADOR — enquanto o modal do vencedor está aberto, um segundo
-// bonequinho (estilo "Neo desviando" do Matrix) cruza a tela voando: entra
-// por um lado, faz uma pausa dramática (o "desvio"), sai pelo outro lado e
-// some — em loop aleatório, até o usuário clicar OK.
+// BONECO VOADOR — DESABILITADO
+// (Funcionalidade que fazia o bonequinho voar pela tela enquanto o
+// modal do vencedor estava aberto)
 // ====================================================================
+/*
 let bonecoVoadorActive = false;
 let bonecoVoadorTimeout = null;
 
@@ -880,10 +880,6 @@ function stopBonecoVoador() {
     el.style.opacity = '0';
 }
 
-// Só agenda a PRÓXIMA passada depois que a atual termina de verdade (espera a
-// Promise `finished` da animação) — do contrário, como a passada dura mais que
-// o intervalo entre chamadas, o boneco era cancelado e "teleportado" no meio
-// do voo, o que parecia travamento.
 function bonecoVoadorLoop() {
     if (!bonecoVoadorActive) return;
     const anim = voarBoneco();
@@ -892,13 +888,9 @@ function bonecoVoadorLoop() {
             if (!bonecoVoadorActive) return;
             bonecoVoadorTimeout = setTimeout(bonecoVoadorLoop, 300 + Math.random() * 700);
         })
-        .catch(() => {}); // animação cancelada por stopBonecoVoador() — não agenda de novo
+        .catch(() => {});
 }
 
-// Monta uma passada: entra de um lado aleatório da tela, faz uma pausa com
-// inclinação dramática no meio do caminho (o "desvio" estilo bullet-time),
-// depois sai acelerando pelo lado oposto e desaparece. Retorna a Animation
-// pra quem chamou saber quando ela realmente termina.
 function voarBoneco() {
     const el = document.getElementById('bonecoVoador');
     const larguraTela = window.innerWidth;
@@ -906,12 +898,11 @@ function voarBoneco() {
     const entraPelaEsquerda = Math.random() < 0.5;
     const entradaX = entraPelaEsquerda ? -150 : larguraTela + 150;
     const saidaX = entraPelaEsquerda ? larguraTela + 150 : -150;
-    const pausaX = larguraTela * (0.25 + Math.random() * 0.5); // pausa entre 25% e 75% da largura
+    const pausaX = larguraTela * (0.25 + Math.random() * 0.5);
 
-    const alturaVh = 15 + Math.random() * 60; // evita ficar muito perto do topo/rodapé
+    const alturaVh = 15 + Math.random() * 60;
     el.style.top = alturaVh + 'vh';
 
-    // ângulo "deitado" apontando na direção do voo, e mais inclinado ainda na pausa (o desvio)
     const anguloBase = entraPelaEsquerda ? 70 : -70;
     const anguloDesvio = entraPelaEsquerda ? 110 : -110;
 
@@ -924,6 +915,7 @@ function voarBoneco() {
         { transform: `translateX(${saidaX}px) rotate(${anguloBase}deg) scale(0.8)`, opacity: 0 }
     ], { duration: 1600 + Math.random() * 600, easing: 'ease-in-out' });
 }
+*/
 
 // ====================================================================
 // MODAL DE CONFIGURAÇÕES — quantidade de foguetes, tempo de giro e o

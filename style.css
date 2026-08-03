@@ -923,49 +923,18 @@ button:disabled:hover::before {
 }
 
 /* RESPONSIVIDADE */
-/* Tamanho da roleta, mobile-first (menor tela primeiro). Cada regra só
-   precisa vencer a anterior, então a ordem no arquivo deixa de importar. */
+/* Tamanho da roleta calculado de forma contínua a partir do espaço realmente
+   disponível na tela (vw/vh) — em vez de saltos fixos em px por faixa de
+   largura. Isso evita o "estoura e gera rolagem" que acontecia quando a
+   janela/zoom do usuário caía numa combinação não prevista pelas faixas fixas:
+   com min(), o tamanho NUNCA passa do que cabe na tela, seja qual for a
+   resolução ou o nível de zoom do navegador. */
 #wheel {
-    width: 300px;
-    height: 300px;
-}
-
-@media (min-width: 481px) {
-    #wheel {
-        width: 350px;
-        height: 350px;
-    }
-}
-
-@media (min-width: 769px) {
-    #wheel {
-        width: 600px;
-        height: 600px;
-    }
-}
-
-@media (max-width: 1200px) {
-    zoom: 80%;
-}
-
-@media (min-width: 1537px) {
-    #wheel {
-        width: 700px;
-        height: 700px;
-    }
-}
-
-/* Telas ultra-wide recebem uma roleta proporcionalmente menor de propósito */
-@media (min-width: 1921px) {
-    #wheel {
-        width: 500px;
-        height: 500px;
-    }
+    width: min(700px, 42vw, 70vh);
+    height: min(700px, 42vw, 70vh);
 }
 
 @media (max-width: 768px) {
-    zoom: 80%;
-
     .container {
         flex-direction: column;
         padding: 1rem;
@@ -980,23 +949,26 @@ button:disabled:hover::before {
         width: 100%;
         max-width: 400px;
     }
-    
+
     textarea {
         height: 200px;
     }
 
-    /* Tamanho do #wheel e posicionamento do .boneco para esta faixa já
-       ficam definidos no bloco "RESPONSIVIDADE PARA ANIMAÇÕES" acima —
-       evita duas fontes de verdade para a mesma media query. */
+    /* Em coluna, a roleta não divide mais a largura com o painel de nomes,
+       então pode usar uma fração bem maior da tela */
+    #wheel {
+        width: min(400px, 85vw, 55vh);
+        height: min(400px, 85vw, 55vh);
+    }
 
     #modalContent {
         padding: 2rem;
     }
-    
+
     #winner {
         font-size: 2rem;
     }
-    
+
     .toast-container {
         right: 10px;
         left: 10px;
@@ -1005,8 +977,6 @@ button:disabled:hover::before {
 }
 
 @media (max-width: 480px) {
-    /* #wheel já é 300px na regra base (mobile-first), nada a sobrescrever aqui */
-
     #pointer {
         top: -15px;
         width: 30px;

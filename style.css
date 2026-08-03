@@ -59,6 +59,72 @@ body {
     mix-blend-mode: overlay;
 }
 
+/* JANELAS DE "HACKEAMENTO" FALSO — aparecem nas laterais enquanto a roleta gira */
+#hackingContainer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1003;
+}
+
+.hack-window {
+    position: fixed;
+    width: 260px;
+    max-width: 38vw;
+    background: rgba(0, 12, 4, 0.88);
+    border: 1px solid var(--primary-color);
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.35);
+    overflow: hidden;
+    opacity: 0;
+    transform: scale(0.9);
+    animation: hackWindowIn 0.3s ease forwards;
+}
+
+.hack-window.closing {
+    animation: hackWindowOut 0.3s ease forwards;
+}
+
+@keyframes hackWindowIn {
+    0% { opacity: 0; transform: scale(0.85); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes hackWindowOut {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.85); }
+}
+
+.hack-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    background: rgba(0, 255, 136, 0.12);
+    border-bottom: 1px solid var(--primary-color);
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.hack-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.hack-body {
+    padding: 8px 10px;
+    min-height: 70px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--primary-color);
+    word-break: break-word;
+}
+
 #fireworksCanvas {
     position: fixed;
     top: 0;

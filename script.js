@@ -880,16 +880,25 @@ function stopBonecoVoador() {
     el.style.opacity = '0';
 }
 
-// Agenda a próxima passada voadora em um intervalo aleatório
+// Só agenda a PRÓXIMA passada depois que a atual termina de verdade (espera a
+// Promise `finished` da animação) — do contrário, como a passada dura mais que
+// o intervalo entre chamadas, o boneco era cancelado e "teleportado" no meio
+// do voo, o que parecia travamento.
 function bonecoVoadorLoop() {
     if (!bonecoVoadorActive) return;
-    voarBoneco();
-    bonecoVoadorTimeout = setTimeout(bonecoVoadorLoop, 900 + Math.random() * 1400);
+    const anim = voarBoneco();
+    anim.finished
+        .then(() => {
+            if (!bonecoVoadorActive) return;
+            bonecoVoadorTimeout = setTimeout(bonecoVoadorLoop, 300 + Math.random() * 700);
+        })
+        .catch(() => {}); // animação cancelada por stopBonecoVoador() — não agenda de novo
 }
 
 // Monta uma passada: entra de um lado aleatório da tela, faz uma pausa com
 // inclinação dramática no meio do caminho (o "desvio" estilo bullet-time),
-// depois sai acelerando pelo lado oposto e desaparece
+// depois sai acelerando pelo lado oposto e desaparece. Retorna a Animation
+// pra quem chamou saber quando ela realmente termina.
 function voarBoneco() {
     const el = document.getElementById('bonecoVoador');
     const larguraTela = window.innerWidth;
@@ -906,8 +915,7 @@ function voarBoneco() {
     const anguloBase = entraPelaEsquerda ? 70 : -70;
     const anguloDesvio = entraPelaEsquerda ? 110 : -110;
 
-    el.getAnimations().forEach(anim => anim.cancel());
-    el.animate([
+    return el.animate([
         { transform: `translateX(${entradaX}px) rotate(${anguloBase}deg) scale(0.85)`, opacity: 0 },
         { transform: `translateX(${(entradaX + pausaX) / 2}px) rotate(${anguloBase}deg) scale(1)`, opacity: 1, offset: 0.22 },
         { transform: `translateX(${pausaX}px) rotate(${anguloDesvio}deg) scale(1.15)`, opacity: 1, offset: 0.45 },

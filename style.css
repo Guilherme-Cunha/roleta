@@ -22,8 +22,10 @@
 
 body {
     margin: 0;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: var(--background-darker);
     color: var(--text-primary);
@@ -58,7 +60,8 @@ body {
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 100vh;
+    min-height: 100vh;
+    min-height: 100dvh;
     padding: 2rem;
     gap: 3rem;
     perspective: 1000px;
@@ -200,15 +203,14 @@ button:disabled:hover::before {
 #pointer {
     position: absolute;
     top: 5px;
-    left: 47%;
-    transform: translateX(-50%);
+    left: 50%;
     width: 40px;
     height: 40px;
     background: var(--accent-color);
     clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
     z-index: 10;
     filter: drop-shadow(0 0 10px var(--accent-color));
-	transform: rotate(180deg);
+	transform: translateX(-50%) rotate(180deg);
 }
 
 /* BOTÃO GIRAR */
@@ -668,7 +670,8 @@ button:disabled:hover::before {
 }
 
 .btn-save-config {
-	margin-left: 25%;
+	display: block;
+	margin: 0 auto;
 }
 
 @keyframes modalSlide {
@@ -804,17 +807,39 @@ button:disabled:hover::before {
 }
 
 /* RESPONSIVIDADE */
-@media (max-width: 1920px) {
-	#wheel {
+/* Tamanho da roleta, mobile-first (menor tela primeiro). Cada regra só
+   precisa vencer a anterior, então a ordem no arquivo deixa de importar. */
+#wheel {
+    width: 300px;
+    height: 300px;
+}
+
+@media (min-width: 481px) {
+    #wheel {
+        width: 350px;
+        height: 350px;
+    }
+}
+
+@media (min-width: 769px) {
+    #wheel {
+        width: 600px;
+        height: 600px;
+    }
+}
+
+@media (min-width: 1537px) {
+    #wheel {
         width: 700px;
         height: 700px;
     }
 }
 
-@media (max-width: 1536px) {
-	#wheel {
-        width: 600px;
-        height: 600px;
+/* Telas ultra-wide recebem uma roleta proporcionalmente menor de propósito */
+@media (min-width: 1921px) {
+    #wheel {
+        width: 500px;
+        height: 500px;
     }
 }
 
@@ -837,26 +862,11 @@ button:disabled:hover::before {
     textarea {
         height: 200px;
     }
-    
-    #wheel {
-        width: 350px;
-        height: 350px;
-    }
-    
-    .boneco {
-        width: 60px;
-        height: 120px;
-        left: -100px;
-    }
-    
-    .boneco.ativo {
-        transform: translateX(200px);
-    }
-    
-    .boneco.saindo {
-        transform: translateX(400px);
-    }
-    
+
+    /* Tamanho do #wheel e posicionamento do .boneco para esta faixa já
+       ficam definidos no bloco "RESPONSIVIDADE PARA ANIMAÇÕES" acima —
+       evita duas fontes de verdade para a mesma media query. */
+
     #modalContent {
         padding: 2rem;
     }
@@ -873,11 +883,8 @@ button:disabled:hover::before {
 }
 
 @media (max-width: 480px) {
-    #wheel {
-        width: 300px;
-        height: 300px;
-    }
-    
+    /* #wheel já é 300px na regra base (mobile-first), nada a sobrescrever aqui */
+
     #pointer {
         top: -15px;
         width: 30px;

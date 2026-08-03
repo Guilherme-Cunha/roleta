@@ -11,8 +11,21 @@ canvasBg.width = window.innerWidth;
 
 const letters = "イエス・キリストは昨日も今日も永遠に同じである".split("");
 const fontSize = 14;
-const columns = canvasBg.width / fontSize;
-const drops = Array(Math.floor(columns)).fill(1);
+const drops = Array(Math.floor(canvasBg.width / fontSize)).fill(1);
+
+function resizeMatrixCanvas() {
+    canvasBg.width = window.innerWidth;
+    canvasBg.height = window.innerHeight;
+
+    const targetColumns = Math.floor(canvasBg.width / fontSize);
+    if (targetColumns > drops.length) {
+        while (drops.length < targetColumns) drops.push(1);
+    } else {
+        drops.length = targetColumns;
+    }
+}
+
+window.addEventListener('resize', resizeMatrixCanvas);
 
 let sparkleParticles = [];
 
@@ -71,12 +84,27 @@ window.addEventListener('resize', () => {
 // ROLETAS
 const canvas = document.getElementById('wheel');
 const ctx = canvas.getContext('2d');
+
+let entries = [];
+let wheelSize = canvas.clientWidth || 600;
+
+function resizeWheelCanvas() {
+    wheelSize = canvas.clientWidth;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = wheelSize * dpr;
+    canvas.height = wheelSize * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (entries.length > 0) drawWheel();
+}
+
+resizeWheelCanvas();
+window.addEventListener('resize', resizeWheelCanvas);
+
 const sound = document.getElementById('sound');
 sound.volume = 0.3;
 const spinSound = document.getElementById('spinSound');
 spinSound.volume = 1;
 
-let entries = [];
 let startAngle = 0;
 let arc;
 let spinTimeout = null;
@@ -136,7 +164,10 @@ function setupWheel() {
 let blinkFatiaId = null; // fatia que vai "respirar"
 
 function drawWheel(blinkId = null, alpha = 1) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const center = wheelSize / 2;
+    const radius = center - 4;
+
+    ctx.clearRect(0, 0, wheelSize, wheelSize);
 
     ctx.shadowColor = "rgba(0,255,0,0.5)";
     ctx.shadowBlur = 15;
@@ -154,17 +185,19 @@ function drawWheel(blinkId = null, alpha = 1) {
         }
 
         ctx.beginPath();
-        ctx.moveTo(300, 300);
-        ctx.arc(300, 300, 300, angle, angle + arc, false);
-        ctx.lineTo(300, 300);
+        ctx.moveTo(center, center);
+        ctx.arc(center, center, radius, angle, angle + arc, false);
+        ctx.lineTo(center, center);
         ctx.fill();
 
         ctx.save();
         ctx.fillStyle = '#000';
-        ctx.font = 'bold 18px Arial';
+        const fontSize = Math.max(10, Math.round(wheelSize / 33));
+        const textRadius = radius * 0.6;
+        ctx.font = `bold ${fontSize}px Arial`;
         ctx.translate(
-            300 + Math.cos(angle + arc / 2) * 180,
-            300 + Math.sin(angle + arc / 2) * 180
+            center + Math.cos(angle + arc / 2) * textRadius,
+            center + Math.sin(angle + arc / 2) * textRadius
         );
         ctx.rotate(angle + arc / 2);
         ctx.fillText(entry.name, -ctx.measureText(entry.name).width / 2, 0);

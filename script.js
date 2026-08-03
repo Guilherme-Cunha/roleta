@@ -10,14 +10,14 @@ canvasBg.height = window.innerHeight;
 canvasBg.width = window.innerWidth;
 
 const letters = "イエス・キリストは昨日も今日も永遠に同じである".split("");
-const fontSize = 14;
-const drops = Array(Math.floor(canvasBg.width / fontSize)).fill(1);
+const matrixFontSize = 14;
+const drops = Array(Math.floor(canvasBg.width / matrixFontSize)).fill(1);
 
 function resizeMatrixCanvas() {
     canvasBg.width = window.innerWidth;
     canvasBg.height = window.innerHeight;
 
-    const targetColumns = Math.floor(canvasBg.width / fontSize);
+    const targetColumns = Math.floor(canvasBg.width / matrixFontSize);
     if (targetColumns > drops.length) {
         while (drops.length < targetColumns) drops.push(1);
     } else {
@@ -27,42 +27,17 @@ function resizeMatrixCanvas() {
 
 window.addEventListener('resize', resizeMatrixCanvas);
 
-let sparkleParticles = [];
-
-function createSparkles() {
-    for (let i = 0; i < 20; i++) {
-        sparkleParticles.push({
-            x: 300 + Math.random() * 600 - 300,
-            y: 300 + Math.random() * 600 - 300,
-            radius: Math.random() * 2 + 1,
-            alpha: Math.random(),
-            deltaAlpha: 0.02
-        });
-    }
-}
-
-function drawSparkles() {
-    for (let p of sparkleParticles) {
-        ctx.beginPath();
-        ctx.fillStyle = `rgba(0,255,0,${p.alpha})`;
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-        p.alpha += p.deltaAlpha;
-        if (p.alpha >= 1 || p.alpha <= 0) p.deltaAlpha *= -1;
-    }
-}
-
 function drawMatrix() {
     ctxBg.fillStyle = "rgba(0, 0, 0, 0.05)";
     ctxBg.fillRect(0, 0, canvasBg.width, canvasBg.height);
 
     ctxBg.fillStyle = "#0F0";
-    ctxBg.font = fontSize + "px monospace";
+    ctxBg.font = matrixFontSize + "px monospace";
 
     for (let i = 0; i < drops.length; i++) {
         const text = letters[Math.floor(Math.random() * letters.length)];
-        ctxBg.fillText(text, i * fontSize, drops[i] * fontSize);
-        if (drops[i] * fontSize > canvasBg.height || Math.random() > 0.975) {
+        ctxBg.fillText(text, i * matrixFontSize, drops[i] * matrixFontSize);
+        if (drops[i] * matrixFontSize > canvasBg.height || Math.random() > 0.975) {
             drops[i] = 0;
         }
         drops[i]++;
@@ -70,6 +45,47 @@ function drawMatrix() {
 }
 
 setInterval(drawMatrix, 50);
+
+let sparkleParticles = [];
+
+// Faíscas orbitando a borda da roleta — giram junto com ela (ancoradas em startAngle)
+function createSparkles() {
+    sparkleParticles = [];
+    const count = 24;
+    for (let i = 0; i < count; i++) {
+        sparkleParticles.push({
+            angleOffset: (Math.PI * 2 / count) * i + Math.random() * 0.15,
+            radiusOffset: Math.random() * 16 - 8,
+            radius: Math.random() * 2 + 1,
+            alpha: Math.random(),
+            deltaAlpha: Math.random() * 0.015 + 0.008
+        });
+    }
+}
+
+function drawSparkles() {
+    if (sparkleParticles.length === 0) return;
+    const center = wheelSize / 2;
+    const edgeRadius = center - 4;
+
+    for (const p of sparkleParticles) {
+        const angle = startAngle + p.angleOffset;
+        const r = edgeRadius + p.radiusOffset;
+        const x = center + Math.cos(angle) * r;
+        const y = center + Math.sin(angle) * r;
+
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(0, 255, 136, ${p.alpha})`;
+        ctx.shadowColor = 'rgba(0, 255, 136, 0.9)';
+        ctx.shadowBlur = 6;
+        ctx.arc(x, y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        p.alpha += p.deltaAlpha;
+        if (p.alpha >= 1 || p.alpha <= 0.15) p.deltaAlpha *= -1;
+    }
+}
 
 const fwCanvas = document.getElementById('fireworksCanvas');
 const fwCtx = fwCanvas.getContext('2d');
@@ -146,6 +162,18 @@ function playTicks(count) {
     }
 }
 
+// Flash/tremor no ponteiro a cada fatia cruzada — usa Web Animations API para não
+// precisar de reflow/reinício de classe CSS a cada chamada rápida
+const pointerEl = document.getElementById('pointer');
+
+function flashPointer() {
+    pointerEl.animate([
+        { transform: 'translateX(-50%) rotate(180deg) scale(1)', filter: 'drop-shadow(0 0 10px var(--accent-color))' },
+        { transform: 'translateX(-50%) rotate(180deg) scale(1.35)', filter: 'drop-shadow(0 0 22px var(--accent-color))' },
+        { transform: 'translateX(-50%) rotate(180deg) scale(1)', filter: 'drop-shadow(0 0 10px var(--accent-color))' }
+    ], { duration: 120, easing: 'ease-out' });
+}
+
 let startAngle = 0;
 let arc;
 let spinTimeout = null;
@@ -196,6 +224,7 @@ function setupWheel() {
     }));
 
     arc = Math.PI * 2 / entries.length;
+    createSparkles();
     drawWheel();
     document.getElementById('spinBtn').style.display = 'block';
 	showToast("🎉 Roleta gerada com sucesso!", "info");
@@ -333,10 +362,12 @@ function rotateWheel() {
     const crossedSlices = Math.floor(startAngle / arc) - Math.floor(lastTickAngle / arc);
     if (crossedSlices !== 0) {
         playTicks(Math.abs(crossedSlices));
+        flashPointer();
         lastTickAngle = startAngle;
     }
 
     drawWheel();
+    drawSparkles();
     spinTimeout = setTimeout(rotateWheel, 30);
 }
 
@@ -362,7 +393,14 @@ function showWinner(entry) {
     sound.volume = 0.3;
     sound.play();
     fireworks();
-    document.getElementById('winner').innerHTML = `<strong>${entry.name}</strong>`;
+
+    const winnerEl = document.getElementById('winner');
+    winnerEl.classList.remove('glitch');
+    void winnerEl.offsetWidth; // força reflow, permite reiniciar o glitch em vencedores seguidos
+    winnerEl.innerHTML = `<strong>${entry.name}</strong>`;
+    winnerEl.classList.add('glitch');
+    winnerEl.addEventListener('animationend', () => winnerEl.classList.remove('glitch'), { once: true });
+
     document.getElementById('modal').style.display = 'flex';
 
     // Cancelar qualquer blink anterior
@@ -780,6 +818,7 @@ window.onload = () => {
         color: colorArr[i]
     }));
     arc = Math.PI * 2 / entries.length;
+    createSparkles();
     drawWheel();
     animateIdle();
 };

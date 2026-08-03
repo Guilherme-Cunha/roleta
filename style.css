@@ -6,6 +6,7 @@
 }
 
 :root {
+    --font-sans: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --primary-color: #00ff88;
     --primary-dark: #00cc6a;
     --secondary-color: #8a2be2;
@@ -26,11 +27,10 @@ body {
     min-height: 100dvh;
     overflow-x: hidden;
     overflow-y: auto;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-sans);
     background: var(--background-darker);
     color: var(--text-primary);
     perspective: 1200px;
-    cursor: url(https://cur.cursors-4u.net/cursors/cur-1/cur21.ani), url(https://cur.cursors-4u.net/cursors/cur-1/cur21.png), auto !important;
 }
 
 /* CANVAS BACKGROUND */
@@ -41,6 +41,22 @@ body {
     width: 100%;
     height: 100%;
     z-index: -1;
+}
+
+/* OVERLAY CRT/SCANLINE — reforça o clima retrô-hacker por cima de tudo */
+.crt-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1004; /* acima até dos toasts */
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.035) 0px,
+        rgba(255, 255, 255, 0.035) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    mix-blend-mode: overlay;
 }
 
 #fireworksCanvas {
@@ -65,7 +81,6 @@ body {
     padding: 2rem;
     gap: 3rem;
     perspective: 1000px;
-    cursor: inherit;
 }
 
 .container > * {
@@ -577,7 +592,7 @@ button:disabled:hover::before {
         filter: drop-shadow(0 0 15px var(--primary-color));
     }
     50% {
-        filter: drop-shadow(0 0 30px var(--accent-color)) 
+        filter: drop-shadow(0 0 30px var(--accent-color))
                 drop-shadow(0 0 20px var(--primary-color));
     }
     100% {
@@ -635,6 +650,20 @@ button:disabled:hover::before {
     100% { text-shadow: 0 0 30px var(--primary-color), 0 0 40px var(--primary-color); }
 }
 
+/* GLITCH — toca uma vez quando o nome do vencedor aparece */
+#winner.glitch {
+    animation: glitchText 0.4s steps(2, end) 1;
+}
+
+@keyframes glitchText {
+    0% { transform: translate(0); }
+    10% { transform: translate(-3px, 2px); text-shadow: 2px 0 red, -2px 0 cyan; }
+    20% { transform: translate(3px, -2px); text-shadow: -2px 0 red, 2px 0 cyan; }
+    30% { transform: translate(-2px, 1px); text-shadow: 2px 0 red, -2px 0 cyan; }
+    40% { transform: translate(2px, -1px); text-shadow: -1px 0 red, 1px 0 cyan; }
+    50%, 100% { transform: translate(0); text-shadow: 0 0 20px var(--primary-color); }
+}
+
 #modalContent button {
     margin-top: 1rem;
 }
@@ -652,7 +681,6 @@ button:disabled:hover::before {
     backdrop-filter: blur(15px);
     align-items: center;
     justify-content: center;
-    cursor: inherit;
 }
 
 .modal-content {
@@ -851,7 +879,7 @@ button:disabled:hover::before {
         height: auto;
         min-height: 100vh;
     }
-    
+
     #inputArea {
         margin-right: 0;
         margin-bottom: 0;

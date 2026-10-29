@@ -237,6 +237,22 @@
         duration: duracao
       });
     };
+
+     // Espectadores: Ouve quando o Anfitrião fecha o modal/confirma o vencedor
+    const fecharModalRef = ref(db, 'roleta/fecharModal');
+    onValue(fecharModalRef, (snapshot) => {
+      const timestamp = snapshot.val();
+      if (timestamp && typeof window.fecharModalVencedor === 'function') {
+        window.fecharModalVencedor();
+      }
+    });
+
+    // Função que o Anfitrião chama ao clicar em OK
+    window.notificarFecharModalFirebase = function() {
+      if (!isViewer) {
+        set(ref(db, 'roleta/fecharModal'), Date.now());
+      }
+    };
   </script>
 
   <script src="script.js"></script>

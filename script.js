@@ -3,9 +3,12 @@
 // o giro em andamento por engano)
 let starded = 0;
 
+// Verificar modo Espectador
+const urlParams = new URLSearchParams(window.location.search);
+const isViewer = urlParams.get('role') === 'viewer';
+
 // ====================================================================
-// FUNDO "MATRIX" — a chuva de caracteres verdes desenhada no canvas de
-// fundo (#matrixCanvas), atrás de todo o resto da página.
+// FUNDO "MATRIX" — chuva de caracteres verdes no canvas de fundo (#matrixCanvas)
 // ====================================================================
 const canvasBg = document.getElementById("matrixCanvas");
 const ctxBg = canvasBg.getContext("2d");
@@ -18,11 +21,8 @@ canvasBg.width = window.innerWidth;
 
 const letters = "イエス・キリストは昨日も今日も永遠に同じである".split("");
 const matrixFontSize = 14;
-// "drops" guarda, para cada coluna de caracteres, a altura atual da "gota" que está caindo
 const drops = Array(Math.floor(canvasBg.width / matrixFontSize)).fill(1);
 
-// Reajusta o canvas de fundo ao tamanho da janela e recalcula quantas colunas
-// de caracteres cabem, adicionando/removendo colunas conforme necessário
 function resizeMatrixCanvas() {
     canvasBg.width = window.innerWidth;
     canvasBg.height = window.innerHeight;
@@ -37,9 +37,6 @@ function resizeMatrixCanvas() {
 
 window.addEventListener('resize', resizeMatrixCanvas);
 
-// Desenha um quadro da chuva de caracteres: escurece levemente o quadro
-// anterior (efeito de rastro) e desenha um caractere aleatório por coluna,
-// avançando cada "gota" um pouco mais pra baixo a cada chamada
 function drawMatrix() {
     ctxBg.fillStyle = "rgba(0, 0, 0, 0.05)";
     ctxBg.fillRect(0, 0, canvasBg.width, canvasBg.height);
@@ -61,7 +58,6 @@ setInterval(drawMatrix, 50);
 
 let sparkleParticles = [];
 
-// Faíscas orbitando a borda da roleta — giram junto com ela (ancoradas em startAngle)
 function createSparkles() {
     sparkleParticles = [];
     const count = 24;
@@ -76,8 +72,6 @@ function createSparkles() {
     }
 }
 
-// Desenha as faíscas na posição atual da borda da roleta e faz cada uma
-// piscar (o brilho vai e volta entre `alpha` mínimo e máximo a cada quadro)
 function drawSparkles() {
     if (sparkleParticles.length === 0) return;
     const center = wheelSize / 2;
@@ -102,7 +96,7 @@ function drawSparkles() {
     }
 }
 
-// Canvas dos fogos de artifício (fica por cima de tudo, menos o modal de configurações)
+// Canvas dos fogos de artifício
 const fwCanvas = document.getElementById('fireworksCanvas');
 const fwCtx = fwCanvas.getContext('2d');
 fwCanvas.width = window.innerWidth;
@@ -119,12 +113,9 @@ window.addEventListener('resize', () => {
 const canvas = document.getElementById('wheel');
 const ctx = canvas.getContext('2d');
 
-let entries = []; // participantes atuais: [{ id, name, color }, ...]
-let wheelSize = canvas.clientWidth || 600; // tamanho "lógico" (CSS) atual da roleta
+let entries = [];
+let wheelSize = canvas.clientWidth || 600;
 
-// Ajusta a resolução real do canvas ao tamanho exibido em CSS, já considerando
-// o devicePixelRatio (evita roleta borrada em telas de alta densidade/retina)
-// e redesenha, já que o breakpoint responsivo pode ter mudado o tamanho
 function resizeWheelCanvas() {
     wheelSize = canvas.clientWidth;
     const dpr = window.devicePixelRatio || 1;
@@ -140,10 +131,6 @@ window.addEventListener('resize', resizeWheelCanvas);
 const sound = document.getElementById('sound');
 sound.volume = 0.3;
 
-// TIQUE DA ROLETA — sintetizado via Web Audio API (não é um <audio> reaproveitado),
-// porque cada fatia cruzada precisa de um clique instantâneo e independente; reiniciar
-// um <audio> compartilhado (como acontecia antes) não gera um novo evento "play" e
-// trava o carregamento do arquivo.
 let tickAudioCtx = null;
 
 function getTickAudioCtx() {
@@ -162,13 +149,11 @@ function playTick(delaySeconds = 0) {
     const startTime = audioCtx.currentTime + delaySeconds;
     const duration = 0.03;
 
-    // Estouro de ruído branco filtrado — soa como um clique mecânico de
-    // roleta de verdade, em vez do "bipe" de onda quadrada de antes
     const bufferSize = Math.floor(audioCtx.sampleRate * duration);
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize); // ruído com decaimento linear
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
     }
 
     const noise = audioCtx.createBufferSource();
@@ -176,7 +161,7 @@ function playTick(delaySeconds = 0) {
 
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.value = 1800 + Math.random() * 800; // pequena variação para não soar robótico
+    filter.frequency.value = 1800 + Math.random() * 800;
     filter.Q.value = 1.2;
 
     const gain = audioCtx.createGain();
@@ -191,14 +176,12 @@ function playTick(delaySeconds = 0) {
 }
 
 function playTicks(count) {
-    const ticksToPlay = Math.min(count, 8); // evita "metralhadora" se várias fatias forem cruzadas no mesmo frame
+    const ticksToPlay = Math.min(count, 8);
     for (let i = 0; i < ticksToPlay; i++) {
         playTick(i * 0.015);
     }
 }
 
-// Flash/tremor no ponteiro a cada fatia cruzada — usa Web Animations API para não
-// precisar de reflow/reinício de classe CSS a cada chamada rápida
 const pointerEl = document.getElementById('pointer');
 
 function flashPointer() {
@@ -210,18 +193,16 @@ function flashPointer() {
 }
 
 // --- Estado do giro atual ---
-let startAngle = 0;       // rotação acumulada da roleta (radianos)
-let arc;                  // tamanho angular de cada fatia (2π / número de participantes)
-let spinTimeout = null;   // referência do setTimeout do loop de rotateWheel()
-let spinAngleStart = 0;   // velocidade angular no início do giro (graus por quadro)
-let spinTime = 0;         // tempo decorrido do giro atual (ms)
-let spinTimeTotal = 0;    // duração total configurada do giro (ms)
-let currentWinner = null; // último vencedor sorteado
-let idleAnimation = null; // referência do setInterval da animação parada (wobble 3D)
-let blinkInterval = null; // referência do requestAnimationFrame da fatia "respirando"
+let startAngle = 0;
+let arc;
+let spinTimeout = null;
+let spinAngleStart = 0;
+let spinTime = 0;
+let spinTimeTotal = 0;
+let currentWinner = null;
+let idleAnimation = null;
+let blinkInterval = null;
 
-// Gera N cores distintas e uniformemente espaçadas na roda de matizes (HSL),
-// depois embaralha a ordem pra fatias vizinhas não ficarem sempre nas mesmas posições
 function generateDistinctColors(n) {
     const colors = [];
     const saturation = 70;
@@ -237,21 +218,19 @@ function generateDistinctColors(n) {
     return colors;
 }
 
-// Lê os nomes digitados no textarea, monta a lista de participantes (entries)
-// com uma cor pra cada um, e redesenha a roleta. É chamada a cada tecla digitada.
-function setupWheel() {
-    const input = document.getElementById('names').value;
-    if (!input) {
-		showToast("ℹ️ Informe pelo menos um nome para gerar a roleta!", "info");
-		return;
-	}
+window.setupWheel = function(customList = null, isFromSync = false) {
+    const input = customList || document.getElementById('names').value;
+    if (!input && !isFromSync) {
+        showToast("ℹ️ Informe pelo menos um nome para gerar a roleta!", "info");
+        return;
+    }
 
-    if (starded === 1) {
+    if (starded === 1 && !isFromSync) {
         const confirmar = confirm("Deseja realmente gerar a roleta novamente?");
         if (!confirmar) return;
     }
 
-    const raw = input
+    const raw = Array.isArray(input) ? input : input
         .split(/[\n,]+/)
         .map(n => n.trim())
         .filter(n => n);
@@ -266,16 +245,19 @@ function setupWheel() {
     arc = Math.PI * 2 / entries.length;
     createSparkles();
     drawWheel();
-    document.getElementById('spinBtn').style.display = 'block';
-	showToast("🎉 Roleta gerada com sucesso!", "info");
-	resetTimer(); // reseta para 00:00
-}
+    
+    if (!isViewer) {
+        document.getElementById('spinBtn').style.display = 'block';
+    }
+    
+    if (!isFromSync) {
+        showToast("🎉 Roleta gerada com sucesso!", "info");
+    }
+    resetTimer();
+};
 
-let blinkFatiaId = null; // fatia que vai "respirar"
+let blinkFatiaId = null;
 
-// Desenha a roleta inteira do zero (canvas é limpo a cada chamada): cada fatia,
-// seu nome centralizado e rotacionado, e opcionalmente destaca uma fatia
-// (blinkId) com transparência customizada — usado na animação do vencedor
 function drawWheel(blinkId = null, alpha = 1) {
     const center = wheelSize / 2;
     const radius = center - 4;
@@ -319,11 +301,9 @@ function drawWheel(blinkId = null, alpha = 1) {
     ctx.shadowBlur = 0;
 }
 
-// Função auxiliar para converter HEX/HSL para RGBA
 function hexToRgba(hex, alpha = 1) {
     let r = 0, g = 0, b = 0;
     if (hex.startsWith('hsl')) {
-        // Se usar hsl, podemos converter para rgb aproximado
         const hsl = hex.match(/[\d.]+/g);
         const h = Number(hsl[0]);
         const s = Number(hsl[1]) / 100;
@@ -349,21 +329,9 @@ function hexToRgba(hex, alpha = 1) {
     return `rgba(${r},${g},${b},${alpha})`;
 }
 
-
-// Loop contínuo de animação para a fatia piscante
-function animateBlink() {
-    if (blinkFatiaId) {
-        drawWheel(blinkFatiaId);
-        requestAnimationFrame(animateBlink);
-    }
-}
-
 // ====================================================================
-// EFEITO "HACKEANDO" — janelas de terminal falso nas laterais da tela,
-// enquanto a roleta gira, dando a impressão de que algo está sendo
-// invadido/processado em segundo plano. Some quando o giro termina.
+// EFEITO "HACKEANDO"
 // ====================================================================
-
 const HACK_LINES = [
     'Conectando ao servidor 192.168.0.{n}...',
     'Autenticando usuário root...',
@@ -386,12 +354,11 @@ const HACK_LINES = [
 ];
 
 const HACK_MAX_WINDOWS = 3;
-const HACK_MIN_SIDE_SPACE = 160; // espaço lateral livre mínimo (px) pra caber uma janela
+const HACK_MIN_SIDE_SPACE = 160;
 
 let hackingActive = false;
 let hackingSpawnTimeout = null;
 
-// Preenche os {n}/{hex} do template com valores aleatórios a cada uso
 function randomHackLine() {
     const template = HACK_LINES[Math.floor(Math.random() * HACK_LINES.length)];
     return template
@@ -410,8 +377,6 @@ function stopHackingEffect() {
     document.querySelectorAll('.hack-window').forEach(closeHackWindow);
 }
 
-// Agenda o próximo terminal falso em um intervalo aleatório, respeitando o
-// limite de janelas simultâneas
 function spawnHackWindowLoop() {
     if (!hackingActive) return;
 
@@ -424,18 +389,16 @@ function spawnHackWindowLoop() {
 }
 
 function spawnHackWindow() {
-    // Mede o espaço realmente vazio nas laterais do conteúdo (não do .container,
-    // que é width:100% de propósito pra poder centralizar os filhos dele) —
-    // assim a janela nunca cobre o textarea ou a roleta
-    const inputRect = document.getElementById('inputArea').getBoundingClientRect();
-    const wheelRect = document.getElementById('wheelContainer').getBoundingClientRect();
-    const leftSpace = inputRect.left;
-    const rightSpace = window.innerWidth - wheelRect.right;
+    const inputArea = document.getElementById('inputArea');
+    const wheelContainer = document.getElementById('wheelContainer');
+    
+    const leftSpace = inputArea ? inputArea.getBoundingClientRect().left : 200;
+    const rightSpace = wheelContainer ? window.innerWidth - wheelContainer.getBoundingClientRect().right : 200;
 
     const sides = [];
     if (leftSpace >= HACK_MIN_SIDE_SPACE) sides.push({ side: 'left', space: leftSpace });
     if (rightSpace >= HACK_MIN_SIDE_SPACE) sides.push({ side: 'right', space: rightSpace });
-    if (sides.length === 0) return; // tela estreita demais, sem espaço lateral livre
+    if (sides.length === 0) return;
 
     const chosen = sides[Math.floor(Math.random() * sides.length)];
     const winWidth = Math.min(260, chosen.space - 24);
@@ -445,7 +408,7 @@ function spawnHackWindow() {
     win.className = 'hack-window';
     win.style.width = winWidth + 'px';
     win.style[chosen.side] = '12px';
-    win.style.top = (10 + Math.random() * 60) + 'vh'; // altura aleatória
+    win.style.top = (10 + Math.random() * 60) + 'vh';
 
     win.innerHTML =
         '<div class="hack-titlebar">' +
@@ -463,7 +426,6 @@ function spawnHackWindow() {
     });
 }
 
-// "Digita" as linhas uma a uma, caractere por caractere, tipo terminal de verdade
 function typeHackLines(body, lines, onDone) {
     let lineIndex = 0;
 
@@ -499,46 +461,75 @@ function closeHackWindow(win) {
     win.addEventListener('animationend', () => win.remove(), { once: true });
 }
 
-// Inicia um giro: espera 1.5s (dá tempo do bonequinho "empurrar" a roleta),
-// sorteia um ângulo final aleatório e dispara o loop de rotateWheel()
-function spin() {
-	if (entries.length > 0) {
-		getTickAudioCtx(); // cria/retoma o AudioContext já dentro do gesto de clique
-		startTimer(); // inicia a contagem
-		setTimeout(() => {
-			starded = 1;
-			const spinBtn = document.getElementById('spinBtn');
-			clearInterval(idleAnimation);
-			idleAnimation = null;
+// ====================================================================
+// ANIMAÇÃO E GIRO DA ROLETA
+// ====================================================================
+window.spin = function() {
+    if (entries.length > 0) {
+        getTickAudioCtx();
+        startTimer();
+        setTimeout(() => {
+            starded = 1;
+            const spinBtn = document.getElementById('spinBtn');
+            clearInterval(idleAnimation);
+            idleAnimation = null;
 
-			spinBtn.disabled = true;
+            if (spinBtn) spinBtn.disabled = true;
 
-			// ----------------------------
-			// VELOCIDADE FIXA + RESULTADO ALEATÓRIO
-			// ----------------------------
-			spinAngleStart = 40;  // velocidade constante
-			startAngle += Math.random() * Math.PI * 2; // resultado continua aleatório
-			lastTickAngle = startAngle; // evita uma rajada de tiques por causa do salto aleatório acima
-			// ----------------------------
+            spinAngleStart = 40;
+            startAngle += Math.random() * Math.PI * 2;
+            lastTickAngle = startAngle;
 
-			spinTime = 0;
+            spinTime = 0;
+            const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;
+            spinTimeTotal = configuredTime;
 
-			const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;
-			spinTimeTotal = configuredTime;
+            startHackingEffect();
+            rotateWheel();
+        }, 1500);
+    } else {
+        showToast("ℹ️ Essa rodada terminou, gere novamente a roleta para continuar!", "info");
+    }
+};
 
-			startHackingEffect();
-			rotateWheel();
-		}, 1500);
-	} else {
-		showToast("ℹ️ Essa rodada terminou, gere novamente a roleta para continuar!", "info");
-	}
-}
+// Animação sincronizada em tempo real para Espectadores
+window.animarRoletaSincronizada = function(targetRotation, startTime, durationMs) {
+    getTickAudioCtx();
+    clearInterval(idleAnimation);
+    idleAnimation = null;
+    startHackingEffect();
 
-let lastTickAngle = 0; // ângulo (startAngle) no último tique/quadro em que uma fatia cruzou o ponteiro
+    function frame() {
+        const agora = Date.now();
+        const decorrido = agora - startTime;
+        const progresso = Math.min(decorrido / durationMs, 1);
 
-// Um quadro da animação de giro: avança o ângulo da roleta (com desaceleração
-// suave via easeOut), toca o tique/flash quando uma fatia cruza o ponteiro,
-// redesenha tudo e se agenda de novo — até o tempo configurado acabar
+        const easeOutVal = 1 - Math.pow(1 - progresso, 3);
+        startAngle = targetRotation * easeOutVal;
+
+        const POINTER_ANGLE_OFFSET = Math.PI / 2;
+        const crossedSlices = Math.floor((startAngle + POINTER_ANGLE_OFFSET) / arc) - Math.floor((lastTickAngle + POINTER_ANGLE_OFFSET) / arc);
+        if (crossedSlices !== 0) {
+            playTicks(Math.abs(crossedSlices));
+            flashPointer();
+            lastTickAngle = startAngle;
+        }
+
+        drawWheel();
+        drawSparkles();
+
+        if (progresso < 1) {
+            requestAnimationFrame(frame);
+        } else {
+            stopRotateWheel();
+        }
+    }
+
+    requestAnimationFrame(frame);
+};
+
+let lastTickAngle = 0;
+
 function rotateWheel() {
     spinTime += 30;
     if (spinTime >= spinTimeTotal) {
@@ -549,8 +540,6 @@ function rotateWheel() {
     const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
     startAngle += (spinAngle * Math.PI) / 180;
 
-    // +90° porque o ponteiro fica no topo da roleta (ângulo -90° no canvas),
-    // não no lado direito (ângulo 0) — mesma correção usada em stopRotateWheel().
     const POINTER_ANGLE_OFFSET = Math.PI / 2;
     const crossedSlices = Math.floor((startAngle + POINTER_ANGLE_OFFSET) / arc) - Math.floor((lastTickAngle + POINTER_ANGLE_OFFSET) / arc);
     if (crossedSlices !== 0) {
@@ -564,8 +553,6 @@ function rotateWheel() {
     spinTimeout = setTimeout(rotateWheel, 30);
 }
 
-// Encerra o giro e descobre qual fatia parou sob o ponteiro (topo da roleta,
-// por isso o +90°), convertendo o índice pra dentro da faixa válida de entries
 function stopRotateWheel() {
     clearTimeout(spinTimeout);
     stopHackingEffect();
@@ -580,15 +567,10 @@ function stopRotateWheel() {
     showWinner(winnerEntry);
 }
 
-// Curva de desaceleração cúbica (ease-out): começa rápido e desacelera suavemente
-// até o fim — t=tempo decorrido, b=valor inicial, c=variação total, d=duração total
 function easeOut(t, b, c, d) {
     return c * ((t = t / d - 1) * t * t + 1) + b;
 }
 
-// Exibe o modal do vencedor: toca o som, dispara os fogos, faz a fatia
-// vencedora "respirar" (piscar) na roleta e prepara o clique em OK pra
-// remover o vencedor da lista e voltar pro estado parado
 function showWinner(entry) {
     sound.currentTime = 1;
     sound.volume = 0.3;
@@ -597,15 +579,13 @@ function showWinner(entry) {
 
     const winnerEl = document.getElementById('winner');
     winnerEl.classList.remove('glitch');
-    void winnerEl.offsetWidth; // força reflow, permite reiniciar o glitch em vencedores seguidos
+    void winnerEl.offsetWidth;
     winnerEl.innerHTML = `<strong>${entry.name}</strong>`;
     winnerEl.classList.add('glitch');
     winnerEl.addEventListener('animationend', () => winnerEl.classList.remove('glitch'), { once: true });
 
     document.getElementById('modal').style.display = 'flex';
-    // startBonecoVoador();
 
-    // Cancelar qualquer blink anterior
     if (blinkInterval) {
         cancelAnimationFrame(blinkInterval);
         blinkInterval = null;
@@ -615,50 +595,46 @@ function showWinner(entry) {
     const winnerId = entry.id;
     let animating = true;
 
-    // Função de animação contínua para a fatia "respirar"
     function animateBlink() {
         if (!animating) return;
 
-        const time = performance.now() / 500; // controla a velocidade da respiração
-        const alpha = 0.7 + 0.3 * Math.sin(time); // varia suavemente entre 0.7 e 1
+        const time = performance.now() / 500;
+        const alpha = 0.7 + 0.3 * Math.sin(time);
 
-        drawWheel(winnerId, alpha); // modificaremos drawWheel para aceitar alpha
-
+        drawWheel(winnerId, alpha);
         blinkInterval = requestAnimationFrame(animateBlink);
     }
 
-    // Inicia a animação
     animateBlink();
 
     document.getElementById('okBtn').onclick = () => {
         animating = false;
         cancelAnimationFrame(blinkInterval);
         blinkInterval = null;
-        // stopBonecoVoador();
 
-        // Remove a fatia vencedora
         entries = entries.filter(e => e.id !== winnerId);
         if (entries.length > 0) {
             arc = Math.PI * 2 / entries.length;
         }
         startAngle = 0;
         document.getElementById('modal').style.display = 'none';
-        drawWheel(); // redesenha a roda sem a fatia vencedora
+        drawWheel();
         animateIdle();
-        document.getElementById('spinBtn').disabled = false;
+        
+        const spinBtn = document.getElementById('spinBtn');
+        if (spinBtn) spinBtn.disabled = false;
 
-		if (entries.length === 0) {
-			pauseTimer(); // pausa temporariamente
-		}
+        if (entries.length === 0) {
+            pauseTimer();
+        }
     };
 }
 
-// Dispara vários foguetes de fogos de artifício em sequência (com um pequeno
-// atraso entre cada um), na quantidade configurada pelo usuário
+// ====================================================================
+// FOGOS DE ARTIFÍCIO
+// ====================================================================
 function fireworks() {
     const colors = generateDistinctColors(10);
-
-    // Pega configuração do localStorage ou usa 5 como padrão
     const numRockets = parseInt(localStorage.getItem("fireworksCount")) || 5;
 
     const delay = 300;
@@ -672,19 +648,15 @@ function fireworks() {
     }
 }
 
-// Anima um único foguete subindo (com leve oscilação lateral) até sua altura
-// máxima (peakY), onde explode em partículas; toca os sons de lançamento/explosão
 function launchRocket(x, y, peakY, colors) {
     const rocketColor = colors[Math.floor(Math.random() * colors.length)];
     const rocket = {
-        x,
-        y,
-        peakY,
+        x, y, peakY,
         exploded: false,
         color: rocketColor,
-        radius: 2 + Math.random() * 2, // tamanho inicial
-        sway: Math.random() * 2 + 1, // amplitude horizontal
-        swayDir: Math.random() < 0.5 ? -1 : 1 // direção inicial da oscilação
+        radius: 2 + Math.random() * 2,
+        sway: Math.random() * 2 + 1,
+        swayDir: Math.random() < 0.5 ? -1 : 1
     };
 
     const rocketSound = document.getElementById('rocketSound');
@@ -694,18 +666,12 @@ function launchRocket(x, y, peakY, colors) {
 
     const rocketInterval = setInterval(() => {
         if (!rocket.exploded) {
-            // sobe verticalmente
             rocket.y += -4 - Math.random() * 4;
-
-            // oscila horizontalmente
             rocket.x += rocket.swayDir * Math.random() * 1.5;
-            // inverte direção se passar limite da amplitude
             if (Math.abs(rocket.x - x) > rocket.sway) rocket.swayDir *= -1;
 
-            // aumenta ou diminui o raio do foguete para parecer que se aproxima ou afasta
             rocket.radius = 1 + Math.sin((rocket.y / peakY) * Math.PI) * 3;
 
-            // explode no topo
             if (rocket.y <= rocket.peakY) {
                 rocket.exploded = true;
                 createExplosion(rocket.x, rocket.y, colors);
@@ -733,8 +699,6 @@ function launchRocket(x, y, peakY, colors) {
     startFireworksAnimation();
 }
 
-// Gera as partículas de uma explosão de foguete, cada uma voando em uma
-// direção/velocidade aleatória a partir do ponto (x, y)
 function createExplosion(x, y, colors) {
     const particleCount = 50 + Math.floor(Math.random() * 50);
     for (let i = 0; i < particleCount; i++) {
@@ -747,25 +711,22 @@ function createExplosion(x, y, colors) {
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
             color: color,
-            life: 50 + Math.random() * 30, // vida da partícula
-            radius: 2 + Math.random() * 3, // tamanho inicial
-            shrink: 0.05 + Math.random() * 0.05, // taxa de encolhimento
-            fade: 0.02 + Math.random() * 0.02 // taxa de transparência
+            life: 50 + Math.random() * 30,
+            radius: 2 + Math.random() * 3,
+            shrink: 0.05 + Math.random() * 0.05,
+            fade: 0.02 + Math.random() * 0.02
         });
     }
 }
 
 function getRandomIntInclusive(min, max) {
-    min = Math.ceil(min); // Garante que o valor mínimo seja um inteiro
-    max = Math.floor(max); // Garante que o valor máximo seja um inteiro
-    return Math.floor(Math.random() * (max - min + 1)) + min; // O número gerado é [min, max]
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Loop único que desenha e atualiza TODAS as partículas de fogos em tela
-// (foguetes subindo + explosões), independente de quantos foguetes existam;
-// para sozinho quando não sobra nenhuma partícula
 function startFireworksAnimation() {
-    if (fireworksAnimation) return; // já rodando
+    if (fireworksAnimation) return;
     fireworksAnimation = setInterval(() => {
         fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
 
@@ -779,7 +740,7 @@ function startFireworksAnimation() {
 
             p.x += p.vx;
             p.y += p.vy;
-            p.vy += 0.05; // gravidade leve
+            p.vy += 0.05;
             p.life--;
 
             if (p.life <= 0) {
@@ -787,7 +748,6 @@ function startFireworksAnimation() {
             }
         }
 
-        // Para o loop se não houver partículas
         if (allParticles.length === 0) {
             clearInterval(fireworksAnimation);
             fireworksAnimation = null;
@@ -796,8 +756,6 @@ function startFireworksAnimation() {
     }, 30);
 }
 
-// Animação de "descanso": enquanto ninguém está girando, a roleta gira bem
-// devagar e balança suavemente em 3D (efeito puramente decorativo)
 function animateIdle() {
     if (idleAnimation) return;
     idleAnimation = setInterval(() => {
@@ -809,292 +767,172 @@ function animateIdle() {
 }
 
 // ====================================================================
-// BONEQUINHO — o palitinho em SVG que "corre" até a roleta e empurra ela
-// quando o usuário clica em girar (puramente decorativo, em paralelo ao giro)
+// BONEQUINHO (Palitinho em SVG)
 // ====================================================================
 document.addEventListener('DOMContentLoaded', () => {
-	const boneco = document.getElementById('boneco');
+    const boneco = document.getElementById('boneco');
     const spinBtn = document.getElementById('spinBtn');
 
-	if (!boneco || !spinBtn) {
-        console.warn('Elemento(s) não encontrado(s): verifique se #boneco e #spinBtn existem no HTML.');
-        return;
-    }
+    if (!boneco || !spinBtn) return;
 
     let animando = false;
 
     function animarBoneco() {
-        if (entries.length === 0) return;
-        if (animando) return;
+        if (entries.length === 0 || animando) return;
 
-		spinBtn.disabled = true;
+        spinBtn.disabled = true;
         animando = true;
 
-        // 1) aparece caminhando
         boneco.classList.add('ativo');
 
-        // 2) quando chega, empurra a roleta
-        const tempoCaminhada = 1200; // ms (deve casar com o CSS .boneco.ativo transition)
+        const tempoCaminhada = 1200;
         setTimeout(() => {
             boneco.classList.add('empurrando');
         }, tempoCaminhada);
 
-        // 3) depois sai caminhando e some
         const tempoEmpurrao = 3200;
         setTimeout(() => {
             boneco.classList.remove('empurrando');
             boneco.classList.add('saindo');
         }, tempoCaminhada + tempoEmpurrao);
 
-        // 4) reset para próxima vez
-        const tempoSaida = 1200; // deve casar com o CSS .boneco.saindo transition
+        const tempoSaida = 1200;
         setTimeout(() => {
             boneco.classList.remove('ativo', 'saindo', 'empurrando');
-            // limpa estilos inline se você os usar em outros trechos
             animando = false;
         }, tempoCaminhada + tempoEmpurrao + tempoSaida + 50);
     }
-	
+
     spinBtn.addEventListener('click', animarBoneco);
 });
 
 // ====================================================================
-// BONECO VOADOR — DESABILITADO
-// (Funcionalidade que fazia o bonequinho voar pela tela enquanto o
-// modal do vencedor estava aberto)
-// ====================================================================
-/*
-let bonecoVoadorActive = false;
-let bonecoVoadorTimeout = null;
-
-function startBonecoVoador() {
-    bonecoVoadorActive = true;
-    bonecoVoadorLoop();
-}
-
-function stopBonecoVoador() {
-    bonecoVoadorActive = false;
-    clearTimeout(bonecoVoadorTimeout);
-    const el = document.getElementById('bonecoVoador');
-    el.getAnimations().forEach(anim => anim.cancel());
-    el.style.opacity = '0';
-}
-
-function bonecoVoadorLoop() {
-    if (!bonecoVoadorActive) return;
-    const anim = voarBoneco();
-    anim.finished
-        .then(() => {
-            if (!bonecoVoadorActive) return;
-            bonecoVoadorTimeout = setTimeout(bonecoVoadorLoop, 300 + Math.random() * 700);
-        })
-        .catch(() => {});
-}
-
-function voarBoneco() {
-    const el = document.getElementById('bonecoVoador');
-    const larguraTela = window.innerWidth;
-
-    const entraPelaEsquerda = Math.random() < 0.5;
-    const entradaX = entraPelaEsquerda ? -150 : larguraTela + 150;
-    const saidaX = entraPelaEsquerda ? larguraTela + 150 : -150;
-    const pausaX = larguraTela * (0.25 + Math.random() * 0.5);
-
-    const alturaVh = 15 + Math.random() * 60;
-    el.style.top = alturaVh + 'vh';
-
-    const anguloBase = entraPelaEsquerda ? 70 : -70;
-    const anguloDesvio = entraPelaEsquerda ? 110 : -110;
-
-    return el.animate([
-        { transform: `translateX(${entradaX}px) rotate(${anguloBase}deg) scale(0.85)`, opacity: 0 },
-        { transform: `translateX(${(entradaX + pausaX) / 2}px) rotate(${anguloBase}deg) scale(1)`, opacity: 1, offset: 0.22 },
-        { transform: `translateX(${pausaX}px) rotate(${anguloDesvio}deg) scale(1.15)`, opacity: 1, offset: 0.45 },
-        { transform: `translateX(${pausaX}px) rotate(${anguloDesvio}deg) scale(1.15)`, opacity: 1, offset: 0.62 },
-        { transform: `translateX(${(pausaX + saidaX) / 2}px) rotate(${anguloBase}deg) scale(0.95)`, opacity: 1, offset: 0.82 },
-        { transform: `translateX(${saidaX}px) rotate(${anguloBase}deg) scale(0.8)`, opacity: 0 }
-    ], { duration: 1600 + Math.random() * 600, easing: 'ease-in-out' });
-}
-*/
-
-// ====================================================================
-// MODAL DE CONFIGURAÇÕES — quantidade de foguetes, tempo de giro e o
-// toggle do timer de fala. Avisa se há alterações não salvas ao fechar.
+// MODAL DE CONFIGURAÇÕES
 // ====================================================================
 const modal = document.getElementById("configModal");
 const btnOpen = document.getElementById("openConfig");
 const btnClose = document.getElementById("closeModal");
 const btnSave = document.getElementById("saveConfig");
 
-btnOpen.onclick = () => modal.style.display = "block";
+if (btnOpen) btnOpen.onclick = () => modal.style.display = "block";
 
-// Fecha sem salvar — mas antes verifica se algum campo mudou em relação ao
-// que já estava salvo, e confirma com o usuário se sim
-btnClose.onclick = () => {
-	let isDirty = false;
-	const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
-    const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
-	
-	if (parseInt(localStorage.getItem("fireworksCount")) !== fireworksCount) {
-		isDirty = true;
-	}
-	if (parseInt(localStorage.getItem("spinTime")) !== spinTime) {
-		isDirty = true;
-	}
-	if (document.getElementById('toggleSpeechTimer').checked !== showSpeechTimer) {
-		isDirty = true;
-	}
+if (btnClose) {
+    btnClose.onclick = () => {
+        let isDirty = false;
+        const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
+        const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
+        
+        if (parseInt(localStorage.getItem("fireworksCount")) !== fireworksCount) isDirty = true;
+        if (parseInt(localStorage.getItem("spinTime")) !== spinTime) isDirty = true;
+        if (document.getElementById('toggleSpeechTimer').checked !== showSpeechTimer) isDirty = true;
 
-	if (isDirty) {
-		const sair = confirm("Alterações não salvas, tem certeza que deseja fechar?");
-		if (!sair) return;
-	}
-	
-	modal.style.display = "none";
-};
+        if (isDirty) {
+            const sair = confirm("Alterações não salvas, tem certeza que deseja fechar?");
+            if (!sair) return;
+        }
+        modal.style.display = "none";
+    };
+}
 
-// Valida e salva as configurações no localStorage; mostra avisos/piadinhas
-// dependendo dos valores escolhidos (muito rápido, muito devagar, etc.)
-btnSave.onclick = () => {
-    const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
-    const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
-	const checkbox = document.getElementById('toggleSpeechTimer');
+if (btnSave) {
+    btnSave.onclick = () => {
+        const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
+        const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
+        const checkbox = document.getElementById('toggleSpeechTimer');
 
-	showSpeechTimer = checkbox.checked;
+        showSpeechTimer = checkbox.checked;
 
-	if (fireworksCount < 1 || !fireworksCount) {
-		showToast("⚠️ Número de foguetes deve ser maior ou igual a 1 (um)!", "warning");
-		return false;
-	}
+        if (fireworksCount < 1 || !fireworksCount) {
+            showToast("⚠️ Número de foguetes deve ser maior ou igual a 1 (um)!", "warning");
+            return false;
+        }
 
-	if (spinTime < 1 || !spinTime) {
-		showToast("⚠️ O tempo de execução deve ser de pelo menos 1 (um) segundo!", "warning");
-		return false;
-	}
-	
-    localStorage.setItem("fireworksCount", fireworksCount);
-    localStorage.setItem("spinTime", spinTime);
-	document.getElementById('speechTimer').style.display = showSpeechTimer ? 'block' : 'none';
+        if (spinTime < 1 || !spinTime) {
+            showToast("⚠️ O tempo de execução deve ser de pelo menos 1 (um) segundo!", "warning");
+            return false;
+        }
 
-    showToast("✅ Configurações salvas!", "success");
+        localStorage.setItem("fireworksCount", fireworksCount);
+        localStorage.setItem("spinTime", spinTime);
+        document.getElementById('speechTimer').style.display = showSpeechTimer ? 'block' : 'none';
 
-	if (fireworksCount >= 15) {
-		showToast("ℹ️ Quantos foguetes!!!\n\nCuidado, estamos quase chamando os bombeiros 🚒💨🔥👨‍🚒", "info", 10000);
-	}
-
-	if (fireworksCount < 5) {
-		showToast("ℹ️ Olha a animação subindo… devagarzinho 😅🚀", "info", 8000);
-	}
-
-	if (spinTime <= 7000) {
-		showToast("ℹ️ Cuidado!!!\n\nGirar tão rápido pode causar tontura virtual 🌀😅", "info", 8000);
-	}
-	
-	if (spinTime >= 15000) {
-		showToast("ℹ️ Ah, claro… vamos deixar a roleta girando até o café esfriar 🙄", "info", 8000);
-	}
-	
-    modal.style.display = "none";
-};
+        showToast("✅ Configurações salvas!", "success");
+        modal.style.display = "none";
+    };
+}
 
 const numericInputs = document.querySelectorAll('#fireworksCount, #spinTime');
-const fireworksVerify = document.getElementById('fireworksCount');
-const spinTimeVerify = document.getElementById('spinTime');
-
 numericInputs.forEach(input => {
     input.addEventListener('input', () => {
-        // Remove qualquer caractere que não seja dígito
         input.value = input.value.replace(/\D/g, '');
-
-		if (fireworksVerify.value > 100) {
-	        fireworksVerify.value = 100;
-	    }
-
-		if (spinTimeVerify.value > 60) {
-	        spinTimeVerify.value = 60;
-	    }
     });
 });
 
-// Desativa o menu de clique direito do navegador na página inteira
 document.addEventListener('contextmenu', function (e) {
-	e.preventDefault();
+    e.preventDefault();
 });
 
-// Cria e anima uma notificação (toast) temporária no canto da tela, com uma
-// barra de progresso indicando o tempo até ela sumir sozinha
 function showToast(message, type = 'info', duration = 5000) {
-  const container = document.getElementById("toastContainer");
-  const toast = document.createElement("div");
-  toast.className = `toast ${type}`;
-  toast.innerHTML = message.replace(/\n/g, "<br>");
+    const container = document.getElementById("toastContainer");
+    if (!container) return;
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.innerHTML = message.replace(/\n/g, "<br>");
 
-  // Cria a barra de progresso
-  const progress = document.createElement("div");
-  progress.className = "toast-progress";
-  toast.appendChild(progress);
+    const progress = document.createElement("div");
+    progress.className = "toast-progress";
+    toast.appendChild(progress);
 
-  container.appendChild(toast);
+    container.appendChild(toast);
 
-  // Animação de entrada
-  setTimeout(() => toast.classList.add("show"), 50);
+    setTimeout(() => toast.classList.add("show"), 50);
 
-  // Animação da barra
-  progress.style.transition = `width ${duration}ms linear`;
-  setTimeout(() => progress.style.width = "0%", 50);
+    progress.style.transition = `width ${duration}ms linear`;
+    setTimeout(() => progress.style.width = "0%", 50);
 
-  // Função para remover o toast
-  const removeToast = () => {
-    toast.classList.remove("show");
-    setTimeout(() => {
-      if (container.contains(toast)) container.removeChild(toast);
-    }, 500);
-  };
+    const removeToast = () => {
+        toast.classList.remove("show");
+        setTimeout(() => {
+            if (container.contains(toast)) container.removeChild(toast);
+        }, 500);
+    };
 
-  // Fecha ao clicar
-  toast.addEventListener('click', removeToast);
-
-  // Fecha automaticamente após o tempo
-  setTimeout(removeToast, duration);
+    toast.addEventListener('click', removeToast);
+    setTimeout(removeToast, duration);
 }
 
-// Regenera a roleta automaticamente a cada tecla digitada na lista de nomes
 const namesInput = document.getElementById('names');
+if (namesInput) {
+    namesInput.addEventListener('input', function () {
+        window.setupWheel();
+    });
+}
 
-namesInput.addEventListener('input', function () {
-	setupWheel();
-});
-  
 let timer = 0;
 let timerInterval = null;
 let showSpeechTimer = false;
 
-// Função para iniciar o contador
 function startTimer() {
-  if (timerInterval) return; // evita múltiplos timers
-  timerInterval = setInterval(() => {
-    timer++;
-    const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
-    const seconds = String(timer % 60).padStart(2, '0');
-    document.getElementById('speechTimer').textContent = `${minutes}:${seconds}`;
-  }, 1000);
+    if (timerInterval) return;
+    timerInterval = setInterval(() => {
+        timer++;
+        const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
+        const seconds = String(timer % 60).padStart(2, '0');
+        document.getElementById('speechTimer').textContent = `${minutes}:${seconds}`;
+    }, 1000);
 }
 
-// Função para pausar
 function pauseTimer() {
-  clearInterval(timerInterval);
-  timerInterval = null;
+    clearInterval(timerInterval);
+    timerInterval = null;
 }
 
-// Função para resetar
 function resetTimer() {
-  pauseTimer();
-  timer = 0;
-  document.getElementById('speechTimer').textContent = '00:00';
+    pauseTimer();
+    timer = 0;
+    document.getElementById('speechTimer').textContent = '00:00';
 }
 
-// Inicialização: configura os valores padrão e monta a roleta com nomes de
-// exemplo, já parada em animação idle, assim que a página termina de carregar
 window.onload = () => {
     localStorage.setItem("fireworksCount", 5);
     localStorage.setItem("spinTime", 10000);

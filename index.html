@@ -171,8 +171,16 @@
     const nomesRef = ref(db, 'roleta/nomes');
     onValue(nomesRef, (snapshot) => {
       const textoNomes = snapshot.val();
-      if (textoNomes !== null && typeof window.setupWheel === 'function') {
+      
+      if (textoNomes && typeof window.setupWheel === 'function') {
         window.setupWheel(textoNomes, true);
+      } else if (textoNomes === '') {
+        // Se a lista for limpa pelo anfitrião, limpa nos espectadores também
+        const namesTextarea = document.getElementById('names');
+        if (namesTextarea) namesTextarea.value = '';
+        if (typeof window.setupWheel === 'function') {
+          window.setupWheel('', true);
+        }
       }
     });
 

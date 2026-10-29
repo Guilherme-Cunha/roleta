@@ -1,19 +1,10 @@
-// Controla se a roleta já girou pelo menos uma vez nesta sessão — usado em
-// setupWheel() pra perguntar antes de gerar a roleta de novo (evita perder
-// o giro em andamento por engano)
 let starded = 0;
 
-// Verificar modo Espectador
-const urlParams = new URLSearchParams(window.location.search);
-const isViewer = urlParams.get('role') === 'viewer';
-
-// ====================================================================
-// FUNDO "MATRIX" — chuva de caracteres verdes no canvas de fundo (#matrixCanvas)
-// ====================================================================
+// FUNDO "MATRIX"
 const canvasBg = document.getElementById("matrixCanvas");
 const ctxBg = canvasBg.getContext("2d");
 
-let allParticles = []; // todas as partículas de todos os foguetes
+let allParticles = [];
 let fireworksAnimation = null;
 
 canvasBg.height = window.innerHeight;
@@ -96,7 +87,6 @@ function drawSparkles() {
     }
 }
 
-// Canvas dos fogos de artifício
 const fwCanvas = document.getElementById('fireworksCanvas');
 const fwCtx = fwCanvas.getContext('2d');
 fwCanvas.width = window.innerWidth;
@@ -107,9 +97,7 @@ window.addEventListener('resize', () => {
     fwCanvas.height = window.innerHeight;
 });
 
-// ====================================================================
-// ROLETA — canvas principal, desenho das fatias e giro
-// ====================================================================
+// ROLETA
 const canvas = document.getElementById('wheel');
 const ctx = canvas.getContext('2d');
 
@@ -192,9 +180,8 @@ function flashPointer() {
     ], { duration: 120, easing: 'ease-out' });
 }
 
-// --- Estado do giro atual ---
 let startAngle = 0;
-let arc;
+let arc = 0;
 let spinTimeout = null;
 let spinAngleStart = 0;
 let spinTime = 0;
@@ -218,33 +205,26 @@ function generateDistinctColors(n) {
     return colors;
 }
 
-window.setupWheel = function(customList = null, isFromSync = false) {
+window.setupWheel = function(customText = null) {
     const namesInput = document.getElementById('names');
-    const input = customList !== null ? customList : (namesInput ? namesInput.value : '');
+    const input = customText !== null ? customText : (namesInput ? namesInput.value : '');
     const spinBtn = document.getElementById('spinBtn');
 
-    // Se o input vier de fora (ex: Firebase sync) e houver a textarea na tela, atualiza o valor dela
-    if (isFromSync && namesInput && typeof customList === 'string' && namesInput.value !== customList) {
-        namesInput.value = customList;
+    if (namesInput && typeof customText === 'string' && namesInput.value !== customText) {
+        namesInput.value = customText;
     }
 
-    const raw = Array.isArray(input) ? input : input
+    const raw = input
         .split(/[\n,]+/)
         .map(n => n.trim())
         .filter(n => n);
 
-    // Se a lista estiver vazia, limpa as entradas e esconde o botão de girar
     if (raw.length === 0) {
         entries = [];
         arc = 0;
         ctx.clearRect(0, 0, wheelSize, wheelSize);
         if (spinBtn) spinBtn.style.display = 'none';
         return;
-    }
-
-    if (starded === 1 && !isFromSync) {
-        const confirmar = confirm("Deseja realmente gerar a roleta novamente?");
-        if (!confirmar) return;
     }
 
     const colorArr = generateDistinctColors(raw.length);
@@ -257,20 +237,12 @@ window.setupWheel = function(customList = null, isFromSync = false) {
     arc = Math.PI * 2 / entries.length;
     createSparkles();
     drawWheel();
-    
-    // Exibe e habilita o botão de giro apenas para o Anfitrião se houver itens
-    if (!isViewer && spinBtn) {
+
+    if (!window.isViewer && spinBtn) {
         spinBtn.style.display = 'block';
         spinBtn.disabled = false;
     }
-    
-    if (!isFromSync) {
-        showToast("🎉 Roleta gerada com sucesso!", "info");
-    }
-    resetTimer();
 };
-
-let blinkFatiaId = null;
 
 function drawWheel(blinkId = null, alpha = 1) {
     const center = wheelSize / 2;
@@ -278,10 +250,10 @@ function drawWheel(blinkId = null, alpha = 1) {
 
     ctx.clearRect(0, 0, wheelSize, wheelSize);
 
+    if (entries.length === 0) return;
+
     ctx.shadowColor = "rgba(0,255,0,0.5)";
     ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
 
     for (let i = 0; i < entries.length; i++) {
         const entry = entries[i];
@@ -343,9 +315,7 @@ function hexToRgba(hex, alpha = 1) {
     return `rgba(${r},${g},${b},${alpha})`;
 }
 
-// ====================================================================
-// EFEITO "HACKEANDO"
-// ====================================================================
+// HACKING EFFECT
 const HACK_LINES = [
     'Conectando ao servidor 192.168.0.{n}...',
     'Autenticando usuário root...',
@@ -475,9 +445,7 @@ function closeHackWindow(win) {
     win.addEventListener('animationend', () => win.remove(), { once: true });
 }
 
-// ====================================================================
-// ANIMAÇÃO E GIRO DA ROLETA
-// ====================================================================
+// GIRO & FÍSICA
 window.spin = function() {
     if (entries.length > 0) {
         getTickAudioCtx();
@@ -501,12 +469,9 @@ window.spin = function() {
             startHackingEffect();
             rotateWheel();
         }, 1500);
-    } else {
-        showToast("ℹ️ Essa rodada terminou, gere novamente a roleta para continuar!", "info");
     }
 };
 
-// Animação sincronizada em tempo real para Espectadores
 window.animarRoletaSincronizada = function(targetRotation, startTime, durationMs) {
     getTickAudioCtx();
     clearInterval(idleAnimation);
@@ -571,6 +536,8 @@ function stopRotateWheel() {
     clearTimeout(spinTimeout);
     stopHackingEffect();
 
+    if (entries.length === 0) return;
+
     const degrees = (startAngle * 180) / Math.PI + 90;
     const arcd = (arc * 180) / Math.PI;
     let index = Math.floor((360 - (degrees % 360)) / arcd);
@@ -580,7 +547,6 @@ function stopRotateWheel() {
     currentWinner = winnerEntry;
     showWinner(winnerEntry);
 
-    // Reseta o estado no Firebase para não disparar novamente ao recarregar a página
     if (typeof window.resetarEstadoGiroFirebase === 'function') {
         window.resetarEstadoGiroFirebase();
     }
@@ -589,6 +555,38 @@ function stopRotateWheel() {
 function easeOut(t, b, c, d) {
     return c * ((t = t / d - 1) * t * t + 1) + b;
 }
+
+window.fecharModalVencedor = function() {
+    if (!currentWinner) return;
+
+    if (blinkInterval) {
+        cancelAnimationFrame(blinkInterval);
+        blinkInterval = null;
+    }
+
+    const winnerId = currentWinner.id;
+
+    entries = entries.filter(e => e.id !== winnerId);
+    if (entries.length > 0) {
+        arc = Math.PI * 2 / entries.length;
+    } else {
+        arc = 0;
+    }
+    startAngle = 0;
+    
+    document.getElementById('modal').style.display = 'none';
+    drawWheel();
+    animateIdle();
+
+    const spinBtn = document.getElementById('spinBtn');
+    if (spinBtn && !window.isViewer) spinBtn.disabled = false;
+
+    if (entries.length === 0) {
+        pauseTimer();
+    }
+
+    currentWinner = null;
+};
 
 function showWinner(entry) {
     sound.currentTime = 1;
@@ -601,9 +599,15 @@ function showWinner(entry) {
     void winnerEl.offsetWidth;
     winnerEl.innerHTML = `<strong>${entry.name}</strong>`;
     winnerEl.classList.add('glitch');
-    winnerEl.addEventListener('animationend', () => winnerEl.classList.remove('glitch'), { once: true });
 
     document.getElementById('modal').style.display = 'flex';
+
+    const okBtn = document.getElementById('okBtn');
+    if (window.isViewer && okBtn) {
+        okBtn.style.display = 'none';
+    } else if (okBtn) {
+        okBtn.style.display = 'inline-block';
+    }
 
     if (blinkInterval) {
         cancelAnimationFrame(blinkInterval);
@@ -616,42 +620,26 @@ function showWinner(entry) {
 
     function animateBlink() {
         if (!animating) return;
-
         const time = performance.now() / 500;
         const alpha = 0.7 + 0.3 * Math.sin(time);
-
         drawWheel(winnerId, alpha);
         blinkInterval = requestAnimationFrame(animateBlink);
     }
 
     animateBlink();
 
-    document.getElementById('okBtn').onclick = () => {
-        animating = false;
-        cancelAnimationFrame(blinkInterval);
-        blinkInterval = null;
-
-        entries = entries.filter(e => e.id !== winnerId);
-        if (entries.length > 0) {
-            arc = Math.PI * 2 / entries.length;
-        }
-        startAngle = 0;
-        document.getElementById('modal').style.display = 'none';
-        drawWheel();
-        animateIdle();
-        
-        const spinBtn = document.getElementById('spinBtn');
-        if (spinBtn) spinBtn.disabled = false;
-
-        if (entries.length === 0) {
-            pauseTimer();
-        }
-    };
+    if (okBtn) {
+        okBtn.onclick = () => {
+            animating = false;
+            if (typeof window.notificarFecharModalFirebase === 'function') {
+                window.notificarFecharModalFirebase();
+            }
+            window.fecharModalVencedor();
+        };
+    }
 }
 
-// ====================================================================
 // FOGOS DE ARTIFÍCIO
-// ====================================================================
 function fireworks() {
     const colors = generateDistinctColors(10);
     const numRockets = parseInt(localStorage.getItem("fireworksCount")) || 5;
@@ -780,20 +768,18 @@ function animateIdle() {
     idleAnimation = setInterval(() => {
         startAngle += 0.002;
         canvas.style.transform = `rotateY(${Math.sin(startAngle) * 5}deg) rotateX(${Math.cos(startAngle) * 5}deg)`;
-        drawWheel();
-        drawSparkles();
+        if (entries.length > 0) {
+            drawWheel();
+            drawSparkles();
+        }
     }, 30);
 }
 
-// ====================================================================
-// BONEQUINHO (Palitinho em SVG)
-// ====================================================================
-// Função global para disparar o boneco (Anfitrião e Espectadores)
+// BONEQUINHO SVG
 window.animarBoneco = function() {
     const boneco = document.getElementById('boneco');
     if (!boneco || entries.length === 0) return;
 
-    // Se houver botão de giro (Anfitrião), desabilita temporariamente
     const spinBtn = document.getElementById('spinBtn');
     if (spinBtn) spinBtn.disabled = true;
 
@@ -827,12 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-    spinBtn.addEventListener('click', animarBoneco);
-});
-
-// ====================================================================
-// MODAL DE CONFIGURAÇÕES
-// ====================================================================
+// MODAL CONFIGURAÇÕES
 const modal = document.getElementById("configModal");
 const btnOpen = document.getElementById("openConfig");
 const btnClose = document.getElementById("closeModal");
@@ -925,13 +906,6 @@ function showToast(message, type = 'info', duration = 5000) {
     setTimeout(removeToast, duration);
 }
 
-const namesInput = document.getElementById('names');
-if (namesInput) {
-    namesInput.addEventListener('input', function () {
-        window.setupWheel();
-    });
-}
-
 let timer = 0;
 let timerInterval = null;
 let showSpeechTimer = false;
@@ -957,106 +931,18 @@ function resetTimer() {
     document.getElementById('speechTimer').textContent = '00:00';
 }
 
-// Função para fechar o modal e remover o vencedor de forma sincronizada
-window.fecharModalVencedor = function() {
-    if (!currentWinner) return;
-
-    if (typeof animating !== 'undefined') animating = false;
-    if (blinkInterval) {
-        cancelAnimationFrame(blinkInterval);
-        blinkInterval = null;
-    }
-
-    const winnerId = currentWinner.id;
-
-    // Remove a fatia vencedora da lista local
-    entries = entries.filter(e => e.id !== winnerId);
-    if (entries.length > 0) {
-        arc = Math.PI * 2 / entries.length;
-    }
-    startAngle = 0;
-    
-    document.getElementById('modal').style.display = 'none';
-    drawWheel();
-    animateIdle();
-
-    const spinBtn = document.getElementById('spinBtn');
-    if (spinBtn && !isViewer) spinBtn.disabled = false;
-
-    if (entries.length === 0) {
-        pauseTimer();
-    }
-
-    currentWinner = null;
-};
-
-// Dentro de showWinner(entry):
-function showWinner(entry) {
-    sound.currentTime = 1;
-    sound.volume = 0.3;
-    sound.play();
-    fireworks();
-
-    const winnerEl = document.getElementById('winner');
-    winnerEl.classList.remove('glitch');
-    void winnerEl.offsetWidth;
-    winnerEl.innerHTML = `<strong>${entry.name}</strong>`;
-    winnerEl.classList.add('glitch');
-
-    document.getElementById('modal').style.display = 'flex';
-
-    // Esconde o botão OK no modo Espectador para não deixar clicável
-    const okBtn = document.getElementById('okBtn');
-    if (isViewer && okBtn) {
-        okBtn.style.display = 'none';
-    } else if (okBtn) {
-        okBtn.style.display = 'inline-block';
-    }
-
-    if (blinkInterval) {
-        cancelAnimationFrame(blinkInterval);
-        blinkInterval = null;
-        drawWheel();
-    }
-
-    const winnerId = entry.id;
-    let animating = true;
-
-    function animateBlink() {
-        if (!animating) return;
-        const time = performance.now() / 500;
-        const alpha = 0.7 + 0.3 * Math.sin(time);
-        drawWheel(winnerId, alpha);
-        blinkInterval = requestAnimationFrame(animateBlink);
-    }
-
-    animateBlink();
-
-    // Ação do botão OK (Apenas Anfitrião)
-    okBtn.onclick = () => {
-        // Notifica o Firebase para fechar em todas as telas conectadas
-        if (typeof window.notificarFecharModalFirebase === 'function') {
-            window.notificarFecharModalFirebase();
-        }
-        
-        // Executa o fechamento local no anfitrião
-        window.fecharModalVencedor();
-    };
-}
-
 window.onload = () => {
     localStorage.setItem("fireworksCount", 5);
     localStorage.setItem("spinTime", 10000);
 
-    const defaultNames = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
-    const colorArr = generateDistinctColors(defaultNames.length);
-    entries = defaultNames.map((n, i) => ({
-        id: `init-${i}`,
-        name: n,
-        color: colorArr[i]
-    }));
-    arc = Math.PI * 2 / entries.length;
-    createSparkles();
-    drawWheel();
+    entries = [];
+    arc = 0;
+    
+    const namesInput = document.getElementById('names');
+    if (namesInput && !window.isViewer) {
+        namesInput.value = '';
+    }
+
+    ctx.clearRect(0, 0, wheelSize, wheelSize);
     animateIdle();
 };

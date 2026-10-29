@@ -116,99 +116,112 @@
   </div>
 
   <!-- Integração Firebase + Lógica Realtime Anfitrião/Espectador -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCdnTHJPV1Ce0T4wVVF9Lhy1yOmM8YHfwU",
-    authDomain: "piloto-1526f.firebaseapp.com",
-    databaseURL: "https://piloto-1526f.firebaseio.com",
-    projectId: "piloto-1526f",
-    storageBucket: "piloto-1526f.firebasestorage.app",
-    messagingSenderId: "746437052107",
-    appId: "1:746437052107:web:bb80ce75617bd321a2fd4e"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyCdnTHJPV1Ce0T4wVVF9Lhy1yOmM8YHfwU",
+      authDomain: "piloto-1526f.firebaseapp.com",
+      databaseURL: "https://piloto-1526f.firebaseio.com",
+      projectId: "piloto-1526f",
+      storageBucket: "piloto-1526f.firebasestorage.app",
+      messagingSenderId: "746437052107",
+      appId: "1:746437052107:web:bb80ce75617bd321a2fd4e"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const isViewer = urlParams.get('role') === 'viewer';
+    const urlParams = new URLSearchParams(window.location.search);
+    const isViewer = urlParams.get('role') === 'viewer';
 
-  window.addEventListener('DOMContentLoaded', () => {
-    const inputArea = document.getElementById('inputArea');
-    const spinBtn = document.getElementById('spinBtn');
-    const shareBtn = document.getElementById('shareViewerBtn');
-    const namesTextarea = document.getElementById('names');
+    // Regista o momento em que a página abriu para ignorar giros antigos
+    const pageLoadTime = Date.now();
 
-    if (isViewer) {
-      if (inputArea) inputArea.style.display = 'none';
-      if (spinBtn) spinBtn.style.display = 'none';
-    } else {
-      if (shareBtn) {
-        shareBtn.addEventListener('click', () => {
-          const viewerUrl = `${window.location.origin}${window.location.pathname}?role=viewer`;
-          navigator.clipboard.writeText(viewerUrl).then(() => {
-            alert("Link de Espectador copiado! Envie para quem vai assistir.");
+    window.addEventListener('DOMContentLoaded', () => {
+      const inputArea = document.getElementById('inputArea');
+      const spinBtn = document.getElementById('spinBtn');
+      const shareBtn = document.getElementById('shareViewerBtn');
+      const namesTextarea = document.getElementById('names');
+
+      if (isViewer) {
+        if (inputArea) inputArea.style.display = 'none';
+        if (spinBtn) spinBtn.style.display = 'none';
+      } else {
+        if (shareBtn) {
+          shareBtn.addEventListener('click', () => {
+            const viewerUrl = `${window.location.origin}${window.location.pathname}?role=viewer`;
+            navigator.clipboard.writeText(viewerUrl).then(() => {
+              alert("Link de Espectador copiado! Envia para quem vai assistir.");
+            });
           });
-        });
+        }
+
+        if (namesTextarea) {
+          namesTextarea.addEventListener('input', () => {
+            const textoNomes = namesTextarea.value;
+            set(ref(db, 'roleta/nomes'), textoNomes);
+          });
+        }
       }
+    });
 
-      // ANFITRIÃO: Envia os nomes para o Firebase quando digitar
-      if (namesTextarea) {
-        namesTextarea.addEventListener('input', () => {
-          const textoNomes = namesTextarea.value;
-          set(ref(db, 'roleta/nomes'), textoNomes);
-        });
+    // Ouve alterações nos nomes
+    const nomesRef = ref(db, 'roleta/nomes');
+    onValue(nomesRef, (snapshot) => {
+      const textoNomes = snapshot.val();
+      if (textoNomes !== null && typeof window.setupWheel === 'function') {
+        window.setupWheel(textoNomes, true);
       }
-    }
-  });
+    });
 
-  // ESPECTADOR E ANFITRIÃO: Ouve as alterações nos nomes
-  const nomesRef = ref(db, 'roleta/nomes');
-  onValue(nomesRef, (snapshot) => {
-    const textoNomes = snapshot.val();
-    if (textoNomes !== null && typeof window.setupWheel === 'function') {
-      // Atualiza a roleta sem exibir os alertas padrão
-      window.setupWheel(textoNomes, true);
-    }
-  });
+    // Ouve giros em tempo real
+    const roletaRef = ref(db, 'roleta/estado');
+    onValue(roletaRef, (snapshot) => {
+      const data = snapshot.val();
+      
+      // Só executa o giro se ele foi disparado APÓS o carregamento da página
+      if (data && data.emAndamento && data.startTime >= (pageLoadTime - 2000)) {
+        if (typeof window.animarRoletaSincronizada === 'function') {
+          window.animarRoletaSincronizada(data.targetRotation, data.startTime, data.duration);
+        } else if (isViewer && typeof window.spin === 'function') {
+          window.spin();
+        }
+      }
+    });
 
-  // Ouve os giros em tempo real
-  const roletaRef = ref(db, 'roleta/estado');
-  onValue(roletaRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data && data.emAndamento) {
-      if (typeof window.animarRoletaSincronizada === 'function') {
-        window.animarRoletaSincronizada(data.targetRotation, data.startTime, data.duration);
-      } else if (isViewer && typeof window.spin === 'function') {
+    // Função para resetar o estado ativo no Firebase
+    window.resetarEstadoGiroFirebase = function() {
+      set(ref(db, 'roleta/estado'), {
+        emAndamento: false,
+        startTime: 0,
+        targetRotation: 0,
+        duration: 0
+      });
+    };
+
+    // Função global acionada pelo Anfitrião ao girar
+    window.girarAoVivo = function() {
+      if (isViewer) return;
+
+      if (typeof window.spin === 'function') {
         window.spin();
       }
-    }
-  });
 
-  // Função global acionada pelo Anfitrião ao girar
-  window.girarAoVivo = function() {
-    if (isViewer) return;
+      const duracao = parseInt(localStorage.getItem("spinTime")) || 10000;
+      const voltasExtras = (5 + Math.floor(Math.random() * 5)) * 360;
+      const anguloSorteado = Math.floor(Math.random() * 360);
+      const anguloFinal = (voltasExtras + anguloSorteado) * (Math.PI / 180);
 
-    if (typeof window.spin === 'function') {
-      window.spin();
-    }
-
-    const duracao = parseInt(localStorage.getItem("spinTime")) || 10000;
-    const voltasExtras = (5 + Math.floor(Math.random() * 5)) * 360;
-    const anguloSorteado = Math.floor(Math.random() * 360);
-    const anguloFinal = (voltasExtras + anguloSorteado) * (Math.PI / 180);
-
-    set(ref(db, 'roleta/estado'), {
-      emAndamento: true,
-      startTime: Date.now(),
-      targetRotation: anguloFinal,
-      duration: duracao
-    });
-  };
-</script>
+      set(ref(db, 'roleta/estado'), {
+        emAndamento: true,
+        startTime: Date.now(),
+        targetRotation: anguloFinal,
+        duration: duracao
+      });
+    };
+  </script>
 
   <script src="script.js"></script>
 </body>

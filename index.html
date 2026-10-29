@@ -5,21 +5,16 @@
    <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=5.0">
    <meta name="robots" content="index, follow">
    <meta name="google-site-verification" content="-O_mVgoZhh3Gu5EPZhUriaC60GraJK6rf-ABrgYb4c4" />
-   <!-- Cross-Origin Isolation --> 
    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
-   <!-- HSTS --> 
    <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains; preload">
-   <!-- SEO Básico --> 
    <meta name="description" content="Gire a roleta de nomes online de forma rápida e divertida. Ideal para sorteios entre amigos, grupos ou eventos.">
    <meta name="keywords" content="roleta de nomes, sorteio online, roleta grátis, sorteio de amigos, roleta interativa, sorteio de grupo, roleta personalizada, sorteio divertido, roleta aleatória, roleta para eventos">
    <meta name="author" content="Guilherme Cunha" />
-   <!-- Open Graph (Facebook, LinkedIn, WhatsApp) --> 
    <meta property="og:title" content="Roleta de Nomes - Sorteios Online" />
    <meta property="og:description" content="Use esta roleta interativa para realizar sorteios de forma divertida e prática." />
    <meta property="og:type" content="website" />
    <meta property="og:url" content="https://guilherme-cunha.github.io/roleta/" />
    <meta property="og:image" content="https://guilherme-cunha.github.io/roleta/imagens/thumbnail.png" />
-   <!-- Twitter Card --> 
    <meta name="twitter:card" content="summary_large_image" />
    <meta name="twitter:title" content="Roleta de Nomes - Sorteios Online" />
    <meta name="twitter:description" content="Sorteios rápidos e divertidos com a Roleta de Nomes online." />
@@ -55,14 +50,10 @@
       <!-- BONEQUINHO (palitinho em SVG) -->
       <div class="boneco" id="boneco" aria-hidden="true">
         <svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
-          <!-- cabeça -->
           <circle cx="50" cy="30" r="20" stroke="white" stroke-width="4" fill="none"/>
-          <!-- corpo -->
           <line x1="50" y1="50" x2="50" y2="120" stroke="white" stroke-width="4"/>
-          <!-- braços -->
           <line x1="50" y1="70" x2="20" y2="90" stroke="white" stroke-width="4"/>
           <line id="braco" x1="50" y1="70" x2="80" y2="90" stroke="white" stroke-width="4"/>
-          <!-- pernas -->
           <line id="perna-esquerda" x1="50" y1="120" x2="20" y2="170" stroke="white" stroke-width="4"/>
           <line id="perna-direita" x1="50" y1="120" x2="80" y2="170" stroke="white" stroke-width="4"/>
         </svg>
@@ -78,7 +69,6 @@
     </div>
   </div>
 
-  <!-- BONECO VOADOR — aparece cruzando a tela enquanto o vencedor é exibido -->
   <div class="boneco-voador" id="bonecoVoador" aria-hidden="true">
     <svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="30" r="20" stroke="white" stroke-width="4" fill="none"/>
@@ -135,8 +125,8 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const isViewer = urlParams.get('role') === 'viewer';
+    window.isViewer = isViewer;
 
-    // Regista o momento em que a página abriu para ignorar giros antigos
     const pageLoadTime = Date.now();
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -158,36 +148,25 @@
           });
         }
 
-        // ANFITRIÃO: Envia os nomes para o Firebase e atualiza a roleta local ao digitar
-         if (namesTextarea) {
-           namesTextarea.addEventListener('input', () => {
-             const textoNomes = namesTextarea.value;
-             
-             // Atualiza a roleta local do anfitrião e exibe o botão
-             if (typeof window.setupWheel === 'function') {
-               window.setupWheel(textoNomes, true);
-             }
-   
-             // Envia a atualização para os espectadores
-             set(ref(db, 'roleta/nomes'), textoNomes);
-           });
-         }
+        if (namesTextarea) {
+          namesTextarea.addEventListener('input', () => {
+            const textoNomes = namesTextarea.value;
+            if (typeof window.setupWheel === 'function') {
+              window.setupWheel(textoNomes);
+            }
+            set(ref(db, 'roleta/nomes'), textoNomes);
+          });
+        }
       }
     });
 
-    // Ouve alterações nos nomes
+    // ESPECTADORES: Ouve alterações na lista de nomes
     const nomesRef = ref(db, 'roleta/nomes');
     onValue(nomesRef, (snapshot) => {
-      const textoNomes = snapshot.val();
-      
-      if (textoNomes && typeof window.setupWheel === 'function') {
-        window.setupWheel(textoNomes, true);
-      } else if (textoNomes === '') {
-        // Se a lista for limpa pelo anfitrião, limpa nos espectadores também
-        const namesTextarea = document.getElementById('names');
-        if (namesTextarea) namesTextarea.value = '';
+      if (isViewer) {
+        const textoNomes = snapshot.val() || '';
         if (typeof window.setupWheel === 'function') {
-          window.setupWheel('', true);
+          window.setupWheel(textoNomes);
         }
       }
     });
@@ -197,22 +176,17 @@
     onValue(roletaRef, (snapshot) => {
       const data = snapshot.val();
       
-      // Executa se o giro começou após a abertura da página
       if (data && data.emAndamento && data.startTime >= (pageLoadTime - 2000)) {
-        // Dispara a animação do boneco para os espectadores
-        if (isViewer && typeof window.animarBoneco === 'function') {
+        if (typeof window.animarBoneco === 'function') {
           window.animarBoneco();
         }
 
         if (typeof window.animarRoletaSincronizada === 'function') {
           window.animarRoletaSincronizada(data.targetRotation, data.startTime, data.duration);
-        } else if (isViewer && typeof window.spin === 'function') {
-          window.spin();
         }
       }
     });
 
-    // Função para resetar o estado ativo no Firebase
     window.resetarEstadoGiroFirebase = function() {
       set(ref(db, 'roleta/estado'), {
         emAndamento: false,
@@ -222,7 +196,6 @@
       });
     };
 
-    // Função global acionada pelo Anfitrião ao girar
     window.girarAoVivo = function() {
       if (isViewer) return;
 
@@ -243,7 +216,6 @@
       });
     };
 
-     // Espectadores: Ouve quando o Anfitrião fecha o modal/confirma o vencedor
     const fecharModalRef = ref(db, 'roleta/fecharModal');
     onValue(fecharModalRef, (snapshot) => {
       const timestamp = snapshot.val();
@@ -252,7 +224,6 @@
       }
     });
 
-    // Função que o Anfitrião chama ao clicar em OK
     window.notificarFecharModalFirebase = function() {
       if (!isViewer) {
         set(ref(db, 'roleta/fecharModal'), Date.now());

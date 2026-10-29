@@ -7,7 +7,7 @@
    <meta name="google-site-verification" content="-O_mVgoZhh3Gu5EPZhUriaC60GraJK6rf-ABrgYb4c4" />
    <!-- Cross-Origin Isolation --> 
    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
-   <!-- HSTS (não é 100% eficaz por meta, melhor via servidor/CDN) --> 
+   <!-- HSTS --> 
    <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains; preload">
    <!-- SEO Básico --> 
    <meta name="description" content="Gire a roleta de nomes online de forma rápida e divertida. Ideal para sorteios entre amigos, grupos ou eventos.">
@@ -25,7 +25,7 @@
    <meta name="twitter:description" content="Sorteios rápidos e divertidos com a Roleta de Nomes online." />
    <meta name="twitter:image" content="https://guilherme-cunha.github.io/roleta/imagens/thumbnail.png" />
    <meta name="twitter:creator" content="@guicunha1188" />
-   <title>Roleta de Nomes</title>
+   <title>Roleta de Nomes - Ao Vivo</title>
    <link rel="preconnect" href="https://fonts.googleapis.com">
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -46,25 +46,27 @@
     <div id="inputArea">
       <textarea id="names" placeholder="Digite os nomes separados por vírgula ou por enter" spellcheck="false"></textarea><br>
       <button id="openConfig" class="gear-btn" title="Configure sua roleta.">⚙️</button>
+      <button id="shareViewerBtn" class="gear-btn" title="Copiar link para espectadores" style="margin-left: 8px;">🔗 Link Espectador</button>
     </div>
     <div id="wheelContainer">
       <canvas id="wheel" width="605" height="605"></canvas>
-      <button id="spinBtn" onclick="spin()" style="display:none;" title="Gire para sortear o próximo.">Clique para Girar</button>
-	  <!-- BONEQUINHO (palitinho em SVG) -->
-	<div class="boneco" id="boneco" aria-hidden="true">
-	  <svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
-		<!-- cabeça -->
-		<circle cx="50" cy="30" r="20" stroke="white" stroke-width="4" fill="none"/>
-		<!-- corpo -->
-		<line x1="50" y1="50" x2="50" y2="120" stroke="white" stroke-width="4"/>
-		<!-- braços -->
-		<line x1="50" y1="70" x2="20" y2="90" stroke="white" stroke-width="4"/>
-		<line id="braco" x1="50" y1="70" x2="80" y2="90" stroke="white" stroke-width="4"/>
-		<!-- pernas -->
-		<line id="perna-esquerda" x1="50" y1="120" x2="20" y2="170" stroke="white" stroke-width="4"/>
-		<line id="perna-direita" x1="50" y1="120" x2="80" y2="170" stroke="white" stroke-width="4"/>
-	  </svg>
-	</div>
+      <button id="spinBtn" onclick="girarAoVivo()" style="display:none;" title="Gire para sortear o próximo.">Clique para Girar</button>
+      
+      <!-- BONEQUINHO (palitinho em SVG) -->
+      <div class="boneco" id="boneco" aria-hidden="true">
+        <svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
+          <!-- cabeça -->
+          <circle cx="50" cy="30" r="20" stroke="white" stroke-width="4" fill="none"/>
+          <!-- corpo -->
+          <line x1="50" y1="50" x2="50" y2="120" stroke="white" stroke-width="4"/>
+          <!-- braços -->
+          <line x1="50" y1="70" x2="20" y2="90" stroke="white" stroke-width="4"/>
+          <line id="braco" x1="50" y1="70" x2="80" y2="90" stroke="white" stroke-width="4"/>
+          <!-- pernas -->
+          <line id="perna-esquerda" x1="50" y1="120" x2="20" y2="170" stroke="white" stroke-width="4"/>
+          <line id="perna-direita" x1="50" y1="120" x2="80" y2="170" stroke="white" stroke-width="4"/>
+        </svg>
+      </div>
       <div id="pointer"></div>
     </div>
   </div>
@@ -97,22 +99,99 @@
     <div class="modal-content">
       <span id="closeModal" class="close" title="Fechar">&times;</span>
       <h2>Configurações</h2>
-      <label for="fireworksCount">Quantidade de foguetes:</label></br>
+      <label for="fireworksCount">Quantidade de foguetes:</label><br>
       <input type="number" id="fireworksCount" min="1" max="20" value="5"><br><br>
 
       <label for="spinTime">Tempo da roleta (em segundos):</label>
       <input type="number" id="spinTime" min="1" max="60" value="10"><br><br>
 
-	  <label>
-		<input type="checkbox" id="toggleSpeechTimer">
-		Mostrar timer
-	  </label>
-	  <br><br>
+      <label>
+        <input type="checkbox" id="toggleSpeechTimer">
+        Mostrar timer
+      </label>
+      <br><br>
 
       <button id="saveConfig" class="btn-save-config">Salvar Configurações</button>
     </div>
   </div>
-  
+
+  <!-- Integração Firebase + Lógica Realtime Anfitrião/Espectador -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCdnTHJPV1Ce0T4wVVF9Lhy1yOmM8YHfwU",
+      authDomain: "piloto-1526f.firebaseapp.com",
+      databaseURL: "https://piloto-1526f.firebaseio.com",
+      projectId: "piloto-1526f",
+      storageBucket: "piloto-1526f.firebasestorage.app",
+      messagingSenderId: "746437052107",
+      appId: "1:746437052107:web:bb80ce75617bd321a2fd4e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Identificar papel (Anfitrião x Espectador) pela URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const isViewer = urlParams.get('role') === 'viewer';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const inputArea = document.getElementById('inputArea');
+      const spinBtn = document.getElementById('spinBtn');
+      const shareBtn = document.getElementById('shareViewerBtn');
+
+      if (isViewer) {
+        // Esconder controles de edição e botão de giro no modo Espectador
+        if (inputArea) inputArea.style.display = 'none';
+        if (spinBtn) spinBtn.style.display = 'none';
+      } else {
+        // Botão para o Anfitrião copiar o link de Espectador
+        if (shareBtn) {
+          shareBtn.addEventListener('click', () => {
+            const viewerUrl = `${window.location.origin}${window.location.pathname}?role=viewer`;
+            navigator.clipboard.writeText(viewerUrl).then(() => {
+              alert("Link de Espectador copiado! Envie para quem vai assistir.");
+            });
+          });
+        }
+      }
+    });
+
+    // Escutar atualizações da roleta em tempo real (Disparado para Anfitrião e Espectadores)
+    const roletaRef = ref(db, 'roleta/estado');
+    onValue(roletaRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data && data.emAndamento) {
+        // Se a sua função de girar no script.js aceitar o ângulo/tempo como parâmetro:
+        if (typeof window.animarRoletaSincronizada === 'function') {
+          window.animarRoletaSincronizada(data.targetRotation, data.startTime, data.duration);
+        } else if (isViewer && typeof window.spin === 'function') {
+          // Fallback chamando a função padrão de giro
+          window.spin();
+        }
+      }
+    });
+
+    // Função global que o botão "Clique para Girar" chama
+    window.girarAoVivo = function() {
+      if (isViewer) return;
+
+      // Chama a função local de giro
+      if (typeof window.spin === 'function') {
+        window.spin();
+      }
+
+      // Notifica o Firebase para sincronizar com os espectadores
+      set(ref(db, 'roleta/estado'), {
+        emAndamento: true,
+        startTime: Date.now(),
+        duration: 10000 // duração padrão ou pega do campo de config
+      });
+    };
+  </script>
+
   <script src="script.js"></script>
 </body>
 </html>

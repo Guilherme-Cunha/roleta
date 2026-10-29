@@ -219,9 +219,26 @@ function generateDistinctColors(n) {
 }
 
 window.setupWheel = function(customList = null, isFromSync = false) {
-    const input = customList || document.getElementById('names').value;
-    if (!input && !isFromSync) {
-        showToast("ℹ️ Informe pelo menos um nome para gerar a roleta!", "info");
+    const namesInput = document.getElementById('names');
+    const input = customList !== null ? customList : (namesInput ? namesInput.value : '');
+    const spinBtn = document.getElementById('spinBtn');
+
+    // Se o input vier de fora (ex: Firebase sync) e houver a textarea na tela, atualiza o valor dela
+    if (isFromSync && namesInput && typeof customList === 'string' && namesInput.value !== customList) {
+        namesInput.value = customList;
+    }
+
+    const raw = Array.isArray(input) ? input : input
+        .split(/[\n,]+/)
+        .map(n => n.trim())
+        .filter(n => n);
+
+    // Se a lista estiver vazia, limpa as entradas e esconde o botão de girar
+    if (raw.length === 0) {
+        entries = [];
+        arc = 0;
+        ctx.clearRect(0, 0, wheelSize, wheelSize);
+        if (spinBtn) spinBtn.style.display = 'none';
         return;
     }
 
@@ -229,11 +246,6 @@ window.setupWheel = function(customList = null, isFromSync = false) {
         const confirmar = confirm("Deseja realmente gerar a roleta novamente?");
         if (!confirmar) return;
     }
-
-    const raw = Array.isArray(input) ? input : input
-        .split(/[\n,]+/)
-        .map(n => n.trim())
-        .filter(n => n);
 
     const colorArr = generateDistinctColors(raw.length);
     entries = raw.map((n, i) => ({
@@ -246,9 +258,10 @@ window.setupWheel = function(customList = null, isFromSync = false) {
     createSparkles();
     drawWheel();
     
-    if (!isViewer) {
-        set(ref(db, 'roleta/nomes'), '');
-        document.getElementById('spinBtn').style.display = 'block';
+    // Exibe e habilita o botão de giro apenas para o Anfitrião se houver itens
+    if (!isViewer && spinBtn) {
+        spinBtn.style.display = 'block';
+        spinBtn.disabled = false;
     }
     
     if (!isFromSync) {

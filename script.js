@@ -565,6 +565,11 @@ function stopRotateWheel() {
     const winnerEntry = entries[index];
     currentWinner = winnerEntry;
     showWinner(winnerEntry);
+
+    // Reseta o estado no Firebase para não disparar novamente ao recarregar a página
+    if (typeof window.resetarEstadoGiroFirebase === 'function') {
+        window.resetarEstadoGiroFirebase();
+    }
 }
 
 function easeOut(t, b, c, d) {

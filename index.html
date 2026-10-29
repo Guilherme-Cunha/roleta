@@ -197,8 +197,13 @@
     onValue(roletaRef, (snapshot) => {
       const data = snapshot.val();
       
-      // Só executa o giro se ele foi disparado APÓS o carregamento da página
+      // Executa se o giro começou após a abertura da página
       if (data && data.emAndamento && data.startTime >= (pageLoadTime - 2000)) {
+        // Dispara a animação do boneco para os espectadores
+        if (isViewer && typeof window.animarBoneco === 'function') {
+          window.animarBoneco();
+        }
+
         if (typeof window.animarRoletaSincronizada === 'function') {
           window.animarRoletaSincronizada(data.targetRotation, data.startTime, data.duration);
         } else if (isViewer && typeof window.spin === 'function') {

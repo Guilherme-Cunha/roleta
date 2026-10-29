@@ -247,6 +247,7 @@ window.setupWheel = function(customList = null, isFromSync = false) {
     drawWheel();
     
     if (!isViewer) {
+        set(ref(db, 'roleta/nomes'), '');
         document.getElementById('spinBtn').style.display = 'block';
     }
     

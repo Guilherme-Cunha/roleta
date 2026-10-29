@@ -788,39 +788,44 @@ function animateIdle() {
 // ====================================================================
 // BONEQUINHO (Palitinho em SVG)
 // ====================================================================
-document.addEventListener('DOMContentLoaded', () => {
+// Função global para disparar o boneco (Anfitrião e Espectadores)
+window.animarBoneco = function() {
     const boneco = document.getElementById('boneco');
+    if (!boneco || entries.length === 0) return;
+
+    // Se houver botão de giro (Anfitrião), desabilita temporariamente
     const spinBtn = document.getElementById('spinBtn');
+    if (spinBtn) spinBtn.disabled = true;
 
-    if (!boneco || !spinBtn) return;
+    boneco.classList.add('ativo');
 
-    let animando = false;
+    const tempoCaminhada = 1200;
+    setTimeout(() => {
+        boneco.classList.add('empurrando');
+    }, tempoCaminhada);
 
-    function animarBoneco() {
-        if (entries.length === 0 || animando) return;
+    const tempoEmpurrao = 3200;
+    setTimeout(() => {
+        boneco.classList.remove('empurrando');
+        boneco.classList.add('saindo');
+    }, tempoCaminhada + tempoEmpurrao);
 
-        spinBtn.disabled = true;
-        animando = true;
+    const tempoSaida = 1200;
+    setTimeout(() => {
+        boneco.classList.remove('ativo', 'saindo', 'empurrando');
+    }, tempoCaminhada + tempoEmpurrao + tempoSaida + 50);
+};
 
-        boneco.classList.add('ativo');
-
-        const tempoCaminhada = 1200;
-        setTimeout(() => {
-            boneco.classList.add('empurrando');
-        }, tempoCaminhada);
-
-        const tempoEmpurrao = 3200;
-        setTimeout(() => {
-            boneco.classList.remove('empurrando');
-            boneco.classList.add('saindo');
-        }, tempoCaminhada + tempoEmpurrao);
-
-        const tempoSaida = 1200;
-        setTimeout(() => {
-            boneco.classList.remove('ativo', 'saindo', 'empurrando');
-            animando = false;
-        }, tempoCaminhada + tempoEmpurrao + tempoSaida + 50);
+document.addEventListener('DOMContentLoaded', () => {
+    const spinBtn = document.getElementById('spinBtn');
+    if (spinBtn) {
+        spinBtn.addEventListener('click', () => {
+            if (typeof window.animarBoneco === 'function') {
+                window.animarBoneco();
+            }
+        });
     }
+});
 
     spinBtn.addEventListener('click', animarBoneco);
 });

@@ -952,6 +952,93 @@ function resetTimer() {
     document.getElementById('speechTimer').textContent = '00:00';
 }
 
+// Função para fechar o modal e remover o vencedor de forma sincronizada
+window.fecharModalVencedor = function() {
+    if (!currentWinner) return;
+
+    if (typeof animating !== 'undefined') animating = false;
+    if (blinkInterval) {
+        cancelAnimationFrame(blinkInterval);
+        blinkInterval = null;
+    }
+
+    const winnerId = currentWinner.id;
+
+    // Remove a fatia vencedora da lista local
+    entries = entries.filter(e => e.id !== winnerId);
+    if (entries.length > 0) {
+        arc = Math.PI * 2 / entries.length;
+    }
+    startAngle = 0;
+    
+    document.getElementById('modal').style.display = 'none';
+    drawWheel();
+    animateIdle();
+
+    const spinBtn = document.getElementById('spinBtn');
+    if (spinBtn && !isViewer) spinBtn.disabled = false;
+
+    if (entries.length === 0) {
+        pauseTimer();
+    }
+
+    currentWinner = null;
+};
+
+// Dentro de showWinner(entry):
+function showWinner(entry) {
+    sound.currentTime = 1;
+    sound.volume = 0.3;
+    sound.play();
+    fireworks();
+
+    const winnerEl = document.getElementById('winner');
+    winnerEl.classList.remove('glitch');
+    void winnerEl.offsetWidth;
+    winnerEl.innerHTML = `<strong>${entry.name}</strong>`;
+    winnerEl.classList.add('glitch');
+
+    document.getElementById('modal').style.display = 'flex';
+
+    // Esconde o botão OK no modo Espectador para não deixar clicável
+    const okBtn = document.getElementById('okBtn');
+    if (isViewer && okBtn) {
+        okBtn.style.display = 'none';
+    } else if (okBtn) {
+        okBtn.style.display = 'inline-block';
+    }
+
+    if (blinkInterval) {
+        cancelAnimationFrame(blinkInterval);
+        blinkInterval = null;
+        drawWheel();
+    }
+
+    const winnerId = entry.id;
+    let animating = true;
+
+    function animateBlink() {
+        if (!animating) return;
+        const time = performance.now() / 500;
+        const alpha = 0.7 + 0.3 * Math.sin(time);
+        drawWheel(winnerId, alpha);
+        blinkInterval = requestAnimationFrame(animateBlink);
+    }
+
+    animateBlink();
+
+    // Ação do botão OK (Apenas Anfitrião)
+    okBtn.onclick = () => {
+        // Notifica o Firebase para fechar em todas as telas conectadas
+        if (typeof window.notificarFecharModalFirebase === 'function') {
+            window.notificarFecharModalFirebase();
+        }
+        
+        // Executa o fechamento local no anfitrião
+        window.fecharModalVencedor();
+    };
+}
+
 window.onload = () => {
     localStorage.setItem("fireworksCount", 5);
     localStorage.setItem("spinTime", 10000);

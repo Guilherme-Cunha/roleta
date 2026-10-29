@@ -158,12 +158,20 @@
           });
         }
 
-        if (namesTextarea) {
-          namesTextarea.addEventListener('input', () => {
-            const textoNomes = namesTextarea.value;
-            set(ref(db, 'roleta/nomes'), textoNomes);
-          });
-        }
+        // ANFITRIÃO: Envia os nomes para o Firebase e atualiza a roleta local ao digitar
+         if (namesTextarea) {
+           namesTextarea.addEventListener('input', () => {
+             const textoNomes = namesTextarea.value;
+             
+             // Atualiza a roleta local do anfitrião e exibe o botão
+             if (typeof window.setupWheel === 'function') {
+               window.setupWheel(textoNomes, true);
+             }
+   
+             // Envia a atualização para os espectadores
+             set(ref(db, 'roleta/nomes'), textoNomes);
+           });
+         }
       }
     });
 

@@ -30,7 +30,21 @@ body {
     font-family: var(--font-sans);
     background: var(--background-darker);
     color: var(--text-primary);
-    perspective: 1200px;
+
+    /* Dimensões derivadas do espaço realmente disponível (anfitrião: painel de
+       nomes + roleta lado a lado; espectador: só a roleta). min() garante que a
+       roleta nunca passa do que cabe na tela, em qualquer resolução ou zoom.
+       Obs.: sem `perspective` no body — ele faria os elementos `position: fixed`
+       (modal, toasts, timer) rolarem junto com a página no celular. */
+    --pane-pad: 2rem;
+    --wheel-size: min(700px, calc(100vw - 30rem), 70vh);
+    --bw: clamp(44px, calc(var(--wheel-size) * 0.18), 90px);
+    --boneco-x: calc(var(--wheel-size) * 0.52);
+    --ptr: clamp(26px, calc(var(--wheel-size) * 0.08), 40px);
+}
+
+body.viewer {
+    --wheel-size: min(700px, calc(100vw - 10rem), 80vh);
 }
 
 /* CANVAS BACKGROUND */
@@ -146,7 +160,6 @@ body {
     min-height: 100dvh;
     padding: 2rem;
     gap: 3rem;
-    perspective: 1000px;
 }
 
 .container > * {
@@ -154,7 +167,7 @@ body {
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-radius: 20px;
-    padding: 2rem;
+    padding: var(--pane-pad);
     transition: all 0.3s ease;
     box-shadow: var(--glow-primary);
 }
@@ -167,11 +180,19 @@ body {
     flex-direction: column;
     gap: 1.5rem;
     width: 300px;
+    flex: 0 0 auto;
+}
+
+.input-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 textarea {
     width: 100%;
-    height: 400px;
+    height: clamp(180px, 50vh, 400px);
     padding: 1.5rem;
     background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px);
@@ -189,6 +210,11 @@ textarea:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 20px var(--primary-color);
     transform: translateY(-2px);
+}
+
+textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 textarea::placeholder {
@@ -261,11 +287,10 @@ button:disabled:hover::before {
 }
 
 .link-btn {
-	font-size: 18px;
-    padding: 0.8rem;
-    width: 200px;
-    height: 20px;
-    border-radius: 5%;
+    font-size: 0.95rem;
+    padding: 0 1rem;
+    flex: 1 1 140px;
+    min-height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -278,11 +303,13 @@ button:disabled:hover::before {
     flex-direction: column;
     align-items: center;
     gap: 2rem;
+    max-width: 100%;
 }
 
 #wheel {
-    width: 500px;
-    height: 500px;
+    width: var(--wheel-size);
+    height: var(--wheel-size);
+    flex: 0 0 auto;
     transition: transform 0.3s ease;
     filter: drop-shadow(0 0 20px var(--primary-color));
     border-radius: 50%;
@@ -294,10 +321,10 @@ button:disabled:hover::before {
 /* PONTEIRO DA ROLETA */
 #pointer {
     position: absolute;
-    top: 5px;
+    top: calc(var(--pane-pad) - var(--ptr) * 0.68);
     left: 50%;
-    width: 40px;
-    height: 40px;
+    width: var(--ptr);
+    height: var(--ptr);
     background: var(--accent-color);
     clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
     z-index: 10;
@@ -311,8 +338,9 @@ button:disabled:hover::before {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    padding: 1.2rem 2.5rem;
-    font-size: 1.2rem;
+    padding: 1rem clamp(1rem, 4vw, 2.5rem);
+    font-size: clamp(0.9rem, 3.2vw, 1.2rem);
+    max-width: 80%;
     background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
     box-shadow: 0 6px 20px rgba(255, 0, 128, 0.4);
     animation: pulse 2s infinite;
@@ -326,10 +354,10 @@ button:disabled:hover::before {
 /* ANIMAÇÃO DO BONECO - VERSÃO MELHORADA */
 .boneco {
     position: absolute;
-    left: -140px;
+    left: calc(var(--bw) * -1.55);
     bottom: 10px;
-    width: 90px;
-    height: 180px;
+    width: var(--bw);
+    height: calc(var(--bw) * 2);
     opacity: 0;
     pointer-events: none;
     transform: translateX(0);
@@ -347,7 +375,7 @@ button:disabled:hover::before {
 /* ENTRADA ESPECIAL - VINDO PULANDO */
 .boneco.ativo {
     opacity: 1;
-    transform: translateX(260px);
+    transform: translateX(var(--boneco-x));
     animation: entradaEspecial 1.2s ease-out;
 }
 
@@ -357,20 +385,20 @@ button:disabled:hover::before {
         opacity: 0;
     }
     20% {
-        transform: translateX(80px) translateY(-60px) rotate(5deg);
+        transform: translateX(calc(var(--boneco-x) * 0.31)) translateY(-60px) rotate(5deg);
         opacity: 0.8;
     }
     40% {
-        transform: translateX(160px) translateY(-30px) rotate(-3deg);
+        transform: translateX(calc(var(--boneco-x) * 0.62)) translateY(-30px) rotate(-3deg);
     }
     60% {
-        transform: translateX(220px) translateY(-10px) rotate(2deg);
+        transform: translateX(calc(var(--boneco-x) * 0.85)) translateY(-10px) rotate(2deg);
     }
     80% {
-        transform: translateX(260px) translateY(5px) rotate(-1deg);
+        transform: translateX(var(--boneco-x)) translateY(5px) rotate(-1deg);
     }
     100% {
-        transform: translateX(260px) translateY(0) rotate(0deg);
+        transform: translateX(var(--boneco-x)) translateY(0) rotate(0deg);
         opacity: 1;
     }
 }
@@ -381,8 +409,8 @@ button:disabled:hover::before {
 }
 
 @keyframes respirar {
-    0%, 100% { transform: translateX(260px) translateY(0px) scale(1); }
-    50% { transform: translateX(260px) translateY(-3px) scale(1.02); }
+    0%, 100% { transform: translateX(var(--boneco-x)) translateY(0px) scale(1); }
+    50% { transform: translateX(var(--boneco-x)) translateY(-3px) scale(1.02); }
 }
 
 /* EMPURRÃO MAIS DRAMÁTICO */
@@ -392,35 +420,35 @@ button:disabled:hover::before {
 
 @keyframes empurraoDramatico {
     0% {
-        transform: translateX(260px);
+        transform: translateX(var(--boneco-x));
         animation-timing-function: ease-out;
     }
     15% {
-        transform: translateX(260px) translateY(-15px) scale(1.05);
+        transform: translateX(var(--boneco-x)) translateY(-15px) scale(1.05);
         animation-timing-function: ease-in;
     }
     30% {
-        transform: translateX(280px) translateY(5px) scale(0.95);
+        transform: translateX(calc(var(--boneco-x) + 20px)) translateY(5px) scale(0.95);
         animation-timing-function: ease-out;
     }
     45% {
-        transform: translateX(250px) translateY(-10px) scale(1.03);
+        transform: translateX(calc(var(--boneco-x) - 10px)) translateY(-10px) scale(1.03);
         animation-timing-function: ease-in;
     }
     60% {
-        transform: translateX(270px) translateY(3px) scale(0.98);
+        transform: translateX(calc(var(--boneco-x) + 10px)) translateY(3px) scale(0.98);
         animation-timing-function: ease-out;
     }
     75% {
-        transform: translateX(255px) translateY(-5px) scale(1.01);
+        transform: translateX(calc(var(--boneco-x) - 5px)) translateY(-5px) scale(1.01);
         animation-timing-function: ease-in;
     }
     90% {
-        transform: translateX(265px) translateY(2px) scale(0.99);
+        transform: translateX(calc(var(--boneco-x) + 5px)) translateY(2px) scale(0.99);
         animation-timing-function: ease-out;
     }
     100% {
-        transform: translateX(260px) translateY(0px) scale(1);
+        transform: translateX(var(--boneco-x)) translateY(0px) scale(1);
     }
 }
 
@@ -432,27 +460,27 @@ button:disabled:hover::before {
 
 @keyframes saidaEstilosa {
     0% {
-        transform: translateX(260px) translateY(0px) rotate(0deg);
+        transform: translateX(var(--boneco-x)) translateY(0px) rotate(0deg);
         opacity: 1;
     }
     20% {
-        transform: translateX(280px) translateY(-20px) rotate(5deg);
+        transform: translateX(calc(var(--boneco-x) + 20px)) translateY(-20px) rotate(5deg);
         opacity: 0.9;
     }
     40% {
-        transform: translateX(320px) translateY(-40px) rotate(10deg);
+        transform: translateX(calc(var(--boneco-x) + 60px)) translateY(-40px) rotate(10deg);
         opacity: 0.7;
     }
     60% {
-        transform: translateX(380px) translateY(-60px) rotate(15deg);
+        transform: translateX(calc(var(--boneco-x) + 120px)) translateY(-60px) rotate(15deg);
         opacity: 0.5;
     }
     80% {
-        transform: translateX(450px) translateY(-80px) rotate(20deg);
+        transform: translateX(calc(var(--boneco-x) + 190px)) translateY(-80px) rotate(20deg);
         opacity: 0.3;
     }
     100% {
-        transform: translateX(520px) translateY(-100px) rotate(25deg);
+        transform: translateX(calc(var(--boneco-x) + 260px)) translateY(-100px) rotate(25deg);
         opacity: 0;
     }
 }
@@ -623,46 +651,6 @@ button:disabled:hover::before {
 	}
 }
 
-/* RESPONSIVIDADE PARA ANIMAÇÕES */
-@media (max-width: 768px) {
-    .boneco {
-        width: 60px;
-        height: 120px;
-        left: -100px;
-    }
-    
-    .boneco.ativo {
-        transform: translateX(200px);
-        animation: entradaEspecialMobile 1s ease-out;
-    }
-    
-    @keyframes entradaEspecialMobile {
-        0% {
-            transform: translateX(0) translateY(-80px) rotate(-10deg);
-            opacity: 0;
-        }
-        100% {
-            transform: translateX(200px) translateY(0) rotate(0deg);
-            opacity: 1;
-        }
-    }
-    
-    .boneco.saindo {
-        animation: saidaEstilosaMobile 1.2s ease-in forwards;
-    }
-    
-    @keyframes saidaEstilosaMobile {
-        0% {
-            transform: translateX(200px) translateY(0px);
-            opacity: 1;
-        }
-        100% {
-            transform: translateX(400px) translateY(-80px) rotate(20deg);
-            opacity: 0;
-        }
-    }
-}
-
 /* EFEITO DE DESTAQUE QUANDO CHEGA */
 @keyframes chegadaDestaque {
     0% {
@@ -715,7 +703,8 @@ button:disabled:hover::before {
 }
 
 #winner {
-    font-size: 2.5rem;
+    font-size: clamp(1.6rem, 7vw, 2.5rem);
+    overflow-wrap: anywhere;
     margin-bottom: 2rem;
     color: var(--primary-color);
     text-shadow: 0 0 20px var(--primary-color);
@@ -781,6 +770,8 @@ button:disabled:hover::before {
     backdrop-filter: blur(15px);
     align-items: center;
     justify-content: center;
+    overflow-y: auto;
+    padding: 1rem;
 }
 
 .modal-content {
@@ -794,7 +785,7 @@ button:disabled:hover::before {
     position: relative;
     animation: modalSlide 0.4s ease;
     color: var(--text-primary);
-	margin: 10% auto;
+    margin: auto;
 }
 
 .btn-save-config {
@@ -935,50 +926,35 @@ button:disabled:hover::before {
 }
 
 /* RESPONSIVIDADE */
-/* Tamanho da roleta calculado de forma contínua a partir do espaço realmente
-   disponível na tela (vw/vh) — em vez de saltos fixos em px por faixa de
-   largura. Isso evita o "estoura e gera rolagem" que acontecia quando a
-   janela/zoom do usuário caía numa combinação não prevista pelas faixas fixas:
-   com min(), o tamanho NUNCA passa do que cabe na tela, seja qual for a
-   resolução ou o nível de zoom do navegador. */
-#wheel {
-    width: min(700px, 42vw, 70vh);
-    height: min(700px, 42vw, 70vh);
-}
+/* O tamanho da roleta e do boneco vem das variáveis do body (ver topo do arquivo);
+   aqui só muda o layout por faixa de largura. */
+@media (max-width: 1024px) {
+    body {
+        --pane-pad: 1rem;
+        --wheel-size: min(560px, calc(100vw - 4.5rem), 60vh);
+    }
 
-@media (max-width: 768px) {
+    body.viewer {
+        --wheel-size: min(560px, calc(100vw - 4.5rem), 75vh);
+    }
+
     .container {
         flex-direction: column;
         padding: 1rem;
-        gap: 2rem;
-        height: auto;
-        min-height: 100vh;
+        gap: 1.5rem;
     }
 
     #inputArea {
-        margin-right: 0;
-        margin-bottom: 0;
         width: 100%;
         max-width: 400px;
     }
 
     textarea {
-        height: 200px;
-    }
-
-    /* Em coluna, a roleta não divide mais a largura com o painel de nomes,
-       então pode usar uma fração bem maior da tela */
-    #wheel {
-        width: min(400px, 85vw, 55vh);
-        height: min(400px, 85vw, 55vh);
+        height: clamp(120px, 25vh, 200px);
     }
 
     #modalContent {
         padding: 2rem;
-    }
-
-    #winner {
-        font-size: 2rem;
     }
 
     .toast-container {
@@ -989,33 +965,28 @@ button:disabled:hover::before {
 }
 
 @media (max-width: 480px) {
-    #pointer {
-        top: -15px;
-        width: 30px;
-        height: 30px;
-    }
-    
     #modalContent {
         padding: 1.5rem;
     }
-    
-    #winner {
-        font-size: 1.8rem;
+
+    .modal-content {
+        padding: 1.5rem;
     }
-    
-    .boneco {
-        width: 50px;
-        height: 100px;
-        left: -80px;
+
+    #speechTimer {
+        top: 10px;
+        left: 10px;
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
     }
-    
-    .boneco.ativo {
-        transform: translateX(150px);
-    }
-    
-    .boneco.saindo {
-        transform: translateX(300px);
-    }
+}
+
+/* ESPECTADOR: somente visualização — nenhum controle é exibido */
+.viewer #inputArea,
+.viewer #spinBtn,
+.viewer #okBtn,
+.viewer #configModal {
+    display: none !important;
 }
 
 /* SCROLLBAR PERSONALIZADA */

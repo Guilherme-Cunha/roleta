@@ -1,4 +1,11 @@
-let starded = 0;
+// MODO: anfitrião (padrão) ou espectador (?role=viewer)
+window.isViewer = new URLSearchParams(window.location.search).get('role') === 'viewer';
+document.body.classList.toggle('viewer', window.isViewer);
+
+// Relógio do servidor (definido por sync.js) — mantém todos os clientes na mesma linha do tempo
+let offsetServidor = 0;
+window.definirOffsetServidor = (ms) => { offsetServidor = ms || 0; };
+const agora = () => Date.now() + offsetServidor;
 
 // FUNDO "MATRIX"
 const canvasBg = document.getElementById("matrixCanvas");
@@ -105,17 +112,17 @@ let entries = [];
 let wheelSize = canvas.clientWidth || 600;
 
 function resizeWheelCanvas() {
-    wheelSize = canvas.clientWidth;
+    const size = canvas.clientWidth;
+    if (!size) return;
+    wheelSize = size;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = wheelSize * dpr;
     canvas.height = wheelSize * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (entries.length > 0) drawWheel();
+    drawWheel(vencedorId, 1);
 }
 
-resizeWheelCanvas();
-window.addEventListener('resize', resizeWheelCanvas);
-
+// SOM
 const sound = document.getElementById('sound');
 sound.volume = 0.3;
 
@@ -127,7 +134,7 @@ function getTickAudioCtx() {
         tickAudioCtx = new AudioContextClass();
     }
     if (tickAudioCtx.state === 'suspended') {
-        tickAudioCtx.resume();
+        tickAudioCtx.resume().catch(() => {});
     }
     return tickAudioCtx;
 }
@@ -170,6 +177,30 @@ function playTicks(count) {
     }
 }
 
+function tocarAudio(el, volume) {
+    el.volume = volume;
+    el.currentTime = 0;
+    el.play().catch(() => {});
+}
+
+// Navegadores bloqueiam áudio sem interação; o espectador não tem botões, então
+// qualquer toque/tecla na página libera o som.
+let audioLiberado = false;
+function liberarAudio() {
+    if (audioLiberado) return;
+    audioLiberado = true;
+    getTickAudioCtx();
+    [sound, document.getElementById('rocketSound'), document.getElementById('explosionSound')].forEach(a => {
+        a.muted = true;
+        a.play().then(() => {
+            a.pause();
+            a.currentTime = 0;
+            a.muted = false;
+        }).catch(() => { a.muted = false; });
+    });
+}
+['pointerdown', 'touchstart', 'keydown'].forEach(ev => document.addEventListener(ev, liberarAudio, { once: true }));
+
 const pointerEl = document.getElementById('pointer');
 
 function flashPointer() {
@@ -180,15 +211,29 @@ function flashPointer() {
     ], { duration: 120, easing: 'ease-out' });
 }
 
-let startAngle = 0;
+// ESTADO DA ROLETA
+// Tudo que o espectador vê deriva destas variáveis, que o anfitrião publica no banco
+// (ver obterEstado / aplicarEstadoRemoto).
+const POINTER_ANGLE = Math.PI * 3 / 2;     // ponteiro no topo do canvas
+const IDLE_SPEED = 0.002 / 30;             // rad/ms (giro lento enquanto parada)
+const ATRASO_BONECO = 1500;                // tempo do boneco empurrar antes da roleta girar
+
+let startAngle = 0;                        // ângulo atual (derivado do tempo)
 let arc = 0;
-let spinTimeout = null;
-let spinAngleStart = 0;
-let spinTime = 0;
-let spinTimeTotal = 0;
-let currentWinner = null;
-let idleAnimation = null;
-let blinkInterval = null;
+let repouso = { angulo: 0, desde: agora() };
+let giro = null;                           // { id, startTime, duration, from, to, winnerId }
+let giroConcluidoId = null;
+let giroEfeitosId = null;
+let vencedorId = null;
+let lastTickAngle = 0;
+let ultimoDesenho = 0;
+
+let configFoguetes = 5;
+let configDuracao = 10000;
+
+resizeWheelCanvas();
+window.addEventListener('resize', resizeWheelCanvas);
+if (window.ResizeObserver) new ResizeObserver(resizeWheelCanvas).observe(canvas);
 
 function generateDistinctColors(n) {
     const colors = [];
@@ -205,43 +250,97 @@ function generateDistinctColors(n) {
     return colors;
 }
 
-window.setupWheel = function(customText = null) {
-    const namesInput = document.getElementById('names');
-    const input = customText !== null ? customText : (namesInput ? namesInput.value : '');
+function atualizarBotao() {
     const spinBtn = document.getElementById('spinBtn');
+    const namesInput = document.getElementById('names');
+    const emGiro = !!giro;
 
-    if (namesInput && typeof customText === 'string' && namesInput.value !== customText) {
-        namesInput.value = customText;
+    if (spinBtn) {
+        spinBtn.style.display = (window.isViewer || entries.length === 0) ? 'none' : 'block';
+        spinBtn.disabled = emGiro;
     }
+    if (namesInput) namesInput.disabled = emGiro;
+}
 
-    const raw = input
+// Estado que o anfitrião grava no banco
+window.obterEstado = function() {
+    return {
+        entries: entries.map(({ id, name, color }) => ({ id, name, color })),
+        repouso: { angulo: repouso.angulo, desde: repouso.desde },
+        giro: giro ? { ...giro } : null,
+        foguetes: configFoguetes
+    };
+};
+
+function publicar(opcoes) {
+    if (!window.isViewer && typeof window.publicarEstado === 'function') {
+        window.publicarEstado(opcoes);
+    }
+}
+
+// Anfitrião: nomes digitados
+window.setupWheel = function(texto = '') {
+    if (window.isViewer || giro) return;
+
+    const raw = texto
         .split(/[\n,]+/)
-        .map(n => n.trim())
+        .map(n => n.trim().slice(0, 60))
         .filter(n => n);
 
-    if (raw.length === 0) {
-        entries = [];
-        arc = 0;
-        ctx.clearRect(0, 0, wheelSize, wheelSize);
-        if (spinBtn) spinBtn.style.display = 'none';
-        return;
-    }
-
     const colorArr = generateDistinctColors(raw.length);
+    const lote = Date.now().toString(36);
     entries = raw.map((n, i) => ({
-        id: `${Date.now()}-${i}-${Math.floor(Math.random() * 100000)}`,
+        id: `${lote}-${i}`,
         name: n,
         color: colorArr[i]
     }));
 
-    arc = Math.PI * 2 / entries.length;
+    arc = entries.length ? Math.PI * 2 / entries.length : 0;
+    repouso = { angulo: 0, desde: agora() };
+    startAngle = 0;
     createSparkles();
     drawWheel();
+    atualizarBotao();
+    publicar({ adiar: true });
+};
 
-    if (!window.isViewer && spinBtn) {
-        spinBtn.style.display = 'block';
-        spinBtn.disabled = false;
+// Espectador: aplica exatamente o que o anfitrião publicou
+window.aplicarEstadoRemoto = function(estado) {
+    if (!window.isViewer) return;
+    const novo = estado || {};
+
+    const lista = Array.isArray(novo.entries) ? novo.entries : Object.values(novo.entries || {});
+    const novas = lista.filter(Boolean);
+    const mudou = novas.length !== entries.length || novas.some((e, i) => e.id !== entries[i].id);
+
+    entries = novas;
+    arc = entries.length ? Math.PI * 2 / entries.length : 0;
+    repouso = novo.repouso || { angulo: 0, desde: agora() };
+    configFoguetes = novo.foguetes || 5;
+    if (mudou) createSparkles();
+
+    const novoGiro = novo.giro || null;
+    if (!novoGiro) {
+        giro = null;
+        giroConcluidoId = null;
+        giroEfeitosId = null;
+        stopHackingEffect();
+        esconderModalVencedor();
+    } else if (!giro || giro.id !== novoGiro.id) {
+        giro = novoGiro;
+        giroConcluidoId = null;
+        giroEfeitosId = null;
+        if (agora() >= giro.startTime + giro.duration) {
+            // Entrou depois do giro terminar: só mostra o resultado, sem repetir som e fogos
+            giroConcluidoId = giro.id;
+            const entry = entries.find(e => e.id === giro.winnerId);
+            if (entry) mostrarVencedor(entry, true);
+        } else {
+            iniciarGiroLocal();
+        }
     }
+
+    atualizarBotao();
 };
 
 function drawWheel(blinkId = null, alpha = 1) {
@@ -351,6 +450,7 @@ function randomHackLine() {
 }
 
 function startHackingEffect() {
+    if (hackingActive) return;
     hackingActive = true;
     spawnHackWindowLoop();
 }
@@ -375,9 +475,11 @@ function spawnHackWindowLoop() {
 function spawnHackWindow() {
     const inputArea = document.getElementById('inputArea');
     const wheelContainer = document.getElementById('wheelContainer');
-    
-    const leftSpace = inputArea ? inputArea.getBoundingClientRect().left : 200;
-    const rightSpace = wheelContainer ? window.innerWidth - wheelContainer.getBoundingClientRect().right : 200;
+
+    // O espectador não tem painel de nomes: usa a própria roleta como referência
+    const refEsquerda = (inputArea && inputArea.offsetParent !== null) ? inputArea : wheelContainer;
+    const leftSpace = refEsquerda ? refEsquerda.getBoundingClientRect().left : 0;
+    const rightSpace = wheelContainer ? window.innerWidth - wheelContainer.getBoundingClientRect().right : 0;
 
     const sides = [];
     if (leftSpace >= HACK_MIN_SIDE_SPACE) sides.push({ side: 'left', space: leftSpace });
@@ -425,6 +527,7 @@ function typeHackLines(body, lines, onDone) {
         let charIndex = 0;
 
         (function typeChar() {
+            if (!lineEl.isConnected) return;
             if (charIndex <= line.length) {
                 lineEl.textContent = line.slice(0, charIndex);
                 charIndex++;
@@ -446,203 +549,164 @@ function closeHackWindow(win) {
 }
 
 // GIRO & FÍSICA
-window.spin = function() {
-    if (entries.length > 0) {
-        getTickAudioCtx();
-        startTimer();
-        setTimeout(() => {
-            starded = 1;
-            const spinBtn = document.getElementById('spinBtn');
-            clearInterval(idleAnimation);
-            idleAnimation = null;
+// O ângulo é uma função pura do tempo do servidor + parâmetros do giro,
+// então anfitrião e espectadores desenham exatamente o mesmo quadro.
+function easeOutCubic(p) {
+    return 1 - Math.pow(1 - p, 3);
+}
 
-            if (spinBtn) spinBtn.disabled = true;
-
-            spinAngleStart = 40;
-            startAngle += Math.random() * Math.PI * 2;
-            lastTickAngle = startAngle;
-
-            spinTime = 0;
-            const configuredTime = parseInt(localStorage.getItem("spinTime")) || 5000;
-            spinTimeTotal = configuredTime;
-
-            startHackingEffect();
-            rotateWheel();
-        }, 1500);
+function anguloEm(now) {
+    if (giro) {
+        const p = Math.min(Math.max((now - giro.startTime) / giro.duration, 0), 1);
+        return giro.from + (giro.to - giro.from) * easeOutCubic(p);
     }
+    return repouso.angulo + IDLE_SPEED * Math.max(0, now - repouso.desde);
+}
+
+// Anfitrião: sorteia o vencedor primeiro e calcula o ângulo final que o faz cair no ponteiro
+window.girar = function() {
+    if (window.isViewer || entries.length === 0 || giro) return;
+
+    liberarAudio();
+    startTimer();
+
+    const now = agora();
+    const indice = Math.floor(Math.random() * entries.length);
+    const dentroDaFatia = arc * (0.1 + Math.random() * 0.8);
+    const base = POINTER_ANGLE - (indice * arc + dentroDaFatia);
+    const from = anguloEm(now);
+    const minimo = from + (5 + Math.floor(Math.random() * 5)) * Math.PI * 2;
+    const to = base + Math.PI * 2 * Math.ceil((minimo - base) / (Math.PI * 2));
+
+    giro = {
+        id: `${now}-${Math.floor(Math.random() * 1e6)}`,
+        startTime: now + ATRASO_BONECO,
+        duration: configDuracao,
+        from,
+        to,
+        winnerId: entries[indice].id
+    };
+    giroConcluidoId = null;
+    giroEfeitosId = null;
+
+    iniciarGiroLocal();
+    atualizarBotao();
+    publicar();
 };
 
-window.animarRoletaSincronizada = function(targetRotation, startTime, durationMs) {
-    getTickAudioCtx();
-    clearInterval(idleAnimation);
-    idleAnimation = null;
-    startHackingEffect();
+function iniciarGiroLocal() {
+    lastTickAngle = giro.from;
+    window.animarBoneco();
+}
 
-    function frame() {
-        const agora = Date.now();
-        const decorrido = agora - startTime;
-        const progresso = Math.min(decorrido / durationMs, 1);
+function processarGiro(now) {
+    if (giro.id === giroConcluidoId) return;
 
-        const easeOutVal = 1 - Math.pow(1 - progresso, 3);
-        startAngle = targetRotation * easeOutVal;
+    if (now >= giro.startTime) {
+        if (giroEfeitosId !== giro.id) {
+            giroEfeitosId = giro.id;
+            lastTickAngle = startAngle;
+            startHackingEffect();
+        }
 
-        const POINTER_ANGLE_OFFSET = Math.PI / 2;
-        const crossedSlices = Math.floor((startAngle + POINTER_ANGLE_OFFSET) / arc) - Math.floor((lastTickAngle + POINTER_ANGLE_OFFSET) / arc);
+        const crossedSlices = Math.floor((startAngle + Math.PI / 2) / arc) - Math.floor((lastTickAngle + Math.PI / 2) / arc);
         if (crossedSlices !== 0) {
             playTicks(Math.abs(crossedSlices));
             flashPointer();
             lastTickAngle = startAngle;
         }
-
-        drawWheel();
-        drawSparkles();
-
-        if (progresso < 1) {
-            requestAnimationFrame(frame);
-        } else {
-            stopRotateWheel();
-        }
     }
 
-    requestAnimationFrame(frame);
-};
-
-let lastTickAngle = 0;
-
-function rotateWheel() {
-    spinTime += 30;
-    if (spinTime >= spinTimeTotal) {
-        stopRotateWheel();
-        return;
+    if (now >= giro.startTime + giro.duration) {
+        concluirGiro();
     }
-
-    const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
-    startAngle += (spinAngle * Math.PI) / 180;
-
-    const POINTER_ANGLE_OFFSET = Math.PI / 2;
-    const crossedSlices = Math.floor((startAngle + POINTER_ANGLE_OFFSET) / arc) - Math.floor((lastTickAngle + POINTER_ANGLE_OFFSET) / arc);
-    if (crossedSlices !== 0) {
-        playTicks(Math.abs(crossedSlices));
-        flashPointer();
-        lastTickAngle = startAngle;
-    }
-
-    drawWheel();
-    drawSparkles();
-    spinTimeout = setTimeout(rotateWheel, 30);
 }
 
-function stopRotateWheel() {
-    clearTimeout(spinTimeout);
+function concluirGiro() {
+    giroConcluidoId = giro.id;
     stopHackingEffect();
 
-    if (entries.length === 0) return;
-
-    const degrees = (startAngle * 180) / Math.PI + 90;
-    const arcd = (arc * 180) / Math.PI;
-    let index = Math.floor((360 - (degrees % 360)) / arcd);
-    index = ((index % entries.length) + entries.length) % entries.length;
-
-    const winnerEntry = entries[index];
-    currentWinner = winnerEntry;
-    showWinner(winnerEntry);
-
-    if (typeof window.resetarEstadoGiroFirebase === 'function') {
-        window.resetarEstadoGiroFirebase();
-    }
+    const entry = entries.find(e => e.id === giro.winnerId);
+    if (entry) mostrarVencedor(entry, false);
 }
 
-function easeOut(t, b, c, d) {
-    return c * ((t = t / d - 1) * t * t + 1) + b;
-}
+// Anfitrião: botão OK — remove o vencedor da roleta e libera o próximo giro
+function confirmarVencedor() {
+    if (window.isViewer || !giro) return;
 
-window.fecharModalVencedor = function() {
-    if (!currentWinner) return;
-
-    if (blinkInterval) {
-        cancelAnimationFrame(blinkInterval);
-        blinkInterval = null;
-    }
-
-    const winnerId = currentWinner.id;
-
-    entries = entries.filter(e => e.id !== winnerId);
-    if (entries.length > 0) {
-        arc = Math.PI * 2 / entries.length;
-    } else {
-        arc = 0;
-    }
+    entries = entries.filter(e => e.id !== giro.winnerId);
+    arc = entries.length ? Math.PI * 2 / entries.length : 0;
+    giro = null;
+    giroConcluidoId = null;
+    giroEfeitosId = null;
+    repouso = { angulo: 0, desde: agora() };
     startAngle = 0;
-    
+
+    esconderModalVencedor();
+    if (entries.length === 0) pauseTimer();
+
+    atualizarBotao();
+    publicar();
+}
+
+function esconderModalVencedor() {
+    vencedorId = null;
     document.getElementById('modal').style.display = 'none';
-    drawWheel();
-    animateIdle();
+}
 
-    const spinBtn = document.getElementById('spinBtn');
-    if (spinBtn && !window.isViewer) spinBtn.disabled = false;
-
-    if (entries.length === 0) {
-        pauseTimer();
-    }
-
-    currentWinner = null;
-};
-
-function showWinner(entry) {
-    sound.currentTime = 1;
-    sound.volume = 0.3;
-    sound.play();
-    fireworks();
+function mostrarVencedor(entry, silencioso) {
+    vencedorId = entry.id;
 
     const winnerEl = document.getElementById('winner');
     winnerEl.classList.remove('glitch');
     void winnerEl.offsetWidth;
-    winnerEl.innerHTML = `<strong>${entry.name}</strong>`;
+    const strong = document.createElement('strong');
+    strong.textContent = entry.name;
+    winnerEl.replaceChildren(strong);
     winnerEl.classList.add('glitch');
 
     document.getElementById('modal').style.display = 'flex';
 
     const okBtn = document.getElementById('okBtn');
-    if (window.isViewer && okBtn) {
-        okBtn.style.display = 'none';
-    } else if (okBtn) {
-        okBtn.style.display = 'inline-block';
+    if (okBtn) okBtn.style.display = window.isViewer ? 'none' : 'inline-block';
+
+    if (!silencioso) {
+        sound.currentTime = 1;
+        sound.volume = 0.3;
+        sound.play().catch(() => {});
+        fireworks();
+    }
+}
+
+document.getElementById('okBtn').addEventListener('click', confirmarVencedor);
+
+// LOOP ÚNICO DE RENDERIZAÇÃO (substitui o idle, o rotateWheel e o blink separados)
+function frame() {
+    const now = agora();
+    startAngle = anguloEm(now);
+
+    if (giro) processarGiro(now);
+
+    const perf = performance.now();
+    if (giro || vencedorId || perf - ultimoDesenho >= 30) {
+        ultimoDesenho = perf;
+        if (entries.length > 0) {
+            const alpha = vencedorId ? 0.7 + 0.3 * Math.sin(perf / 500) : 1;
+            drawWheel(vencedorId, alpha);
+            drawSparkles();
+        }
+        if (!giro) {
+            canvas.style.transform = `perspective(1000px) rotateY(${Math.sin(startAngle) * 5}deg) rotateX(${Math.cos(startAngle) * 5}deg)`;
+        }
     }
 
-    if (blinkInterval) {
-        cancelAnimationFrame(blinkInterval);
-        blinkInterval = null;
-        drawWheel();
-    }
-
-    const winnerId = entry.id;
-    let animating = true;
-
-    function animateBlink() {
-        if (!animating) return;
-        const time = performance.now() / 500;
-        const alpha = 0.7 + 0.3 * Math.sin(time);
-        drawWheel(winnerId, alpha);
-        blinkInterval = requestAnimationFrame(animateBlink);
-    }
-
-    animateBlink();
-
-    if (okBtn) {
-        okBtn.onclick = () => {
-            animating = false;
-            if (typeof window.notificarFecharModalFirebase === 'function') {
-                window.notificarFecharModalFirebase();
-            }
-            window.fecharModalVencedor();
-        };
-    }
+    requestAnimationFrame(frame);
 }
 
 // FOGOS DE ARTIFÍCIO
 function fireworks() {
     const colors = generateDistinctColors(10);
-    const numRockets = parseInt(localStorage.getItem("fireworksCount")) || 5;
+    const numRockets = configFoguetes;
 
     const delay = 300;
     for (let i = 0; i < numRockets; i++) {
@@ -666,10 +730,7 @@ function launchRocket(x, y, peakY, colors) {
         swayDir: Math.random() < 0.5 ? -1 : 1
     };
 
-    const rocketSound = document.getElementById('rocketSound');
-    rocketSound.volume = 0.1;
-    rocketSound.currentTime = 0;
-    rocketSound.play();
+    tocarAudio(document.getElementById('rocketSound'), 0.1);
 
     const rocketInterval = setInterval(() => {
         if (!rocket.exploded) {
@@ -682,12 +743,7 @@ function launchRocket(x, y, peakY, colors) {
             if (rocket.y <= rocket.peakY) {
                 rocket.exploded = true;
                 createExplosion(rocket.x, rocket.y, colors);
-
-                const explosionSound = document.getElementById('explosionSound');
-                explosionSound.volume = 0.5;
-                explosionSound.currentTime = 0;
-                explosionSound.play();
-
+                tocarAudio(document.getElementById('explosionSound'), 0.5);
                 clearInterval(rocketInterval);
             } else {
                 allParticles.push({
@@ -763,25 +819,10 @@ function startFireworksAnimation() {
     }, 30);
 }
 
-function animateIdle() {
-    if (idleAnimation) return;
-    idleAnimation = setInterval(() => {
-        startAngle += 0.002;
-        canvas.style.transform = `rotateY(${Math.sin(startAngle) * 5}deg) rotateX(${Math.cos(startAngle) * 5}deg)`;
-        if (entries.length > 0) {
-            drawWheel();
-            drawSparkles();
-        }
-    }, 30);
-}
-
 // BONEQUINHO SVG
 window.animarBoneco = function() {
     const boneco = document.getElementById('boneco');
-    if (!boneco || entries.length === 0) return;
-
-    const spinBtn = document.getElementById('spinBtn');
-    if (spinBtn) spinBtn.disabled = true;
+    if (!boneco || entries.length === 0 || boneco.classList.contains('ativo')) return;
 
     boneco.classList.add('ativo');
 
@@ -802,16 +843,16 @@ window.animarBoneco = function() {
     }, tempoCaminhada + tempoEmpurrao + tempoSaida + 50);
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    const spinBtn = document.getElementById('spinBtn');
-    if (spinBtn) {
-        spinBtn.addEventListener('click', () => {
-            if (typeof window.animarBoneco === 'function') {
-                window.animarBoneco();
-            }
-        });
-    }
-});
+const spinBtnEl = document.getElementById('spinBtn');
+if (spinBtnEl) spinBtnEl.addEventListener('click', () => window.girar());
+
+// MODO ESPECTADOR FORÇADO (ex.: já existe outro anfitrião ativo)
+window.entrarModoEspectador = function() {
+    window.isViewer = true;
+    document.body.classList.add('viewer');
+    giro = null;
+    atualizarBotao();
+};
 
 // MODAL CONFIGURAÇÕES
 const modal = document.getElementById("configModal");
@@ -819,22 +860,25 @@ const btnOpen = document.getElementById("openConfig");
 const btnClose = document.getElementById("closeModal");
 const btnSave = document.getElementById("saveConfig");
 
-if (btnOpen) btnOpen.onclick = () => modal.style.display = "block";
+if (btnOpen) {
+    btnOpen.onclick = () => {
+        document.getElementById("fireworksCount").value = configFoguetes;
+        document.getElementById("spinTime").value = configDuracao / 1000;
+        document.getElementById('toggleSpeechTimer').checked = showSpeechTimer;
+        modal.style.display = "flex";
+    };
+}
 
 if (btnClose) {
     btnClose.onclick = () => {
-        let isDirty = false;
         const fireworksCount = parseInt(document.getElementById("fireworksCount").value);
         const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
-        
-        if (parseInt(localStorage.getItem("fireworksCount")) !== fireworksCount) isDirty = true;
-        if (parseInt(localStorage.getItem("spinTime")) !== spinTime) isDirty = true;
-        if (document.getElementById('toggleSpeechTimer').checked !== showSpeechTimer) isDirty = true;
 
-        if (isDirty) {
-            const sair = confirm("Alterações não salvas, tem certeza que deseja fechar?");
-            if (!sair) return;
-        }
+        const isDirty = fireworksCount !== configFoguetes
+            || spinTime !== configDuracao
+            || document.getElementById('toggleSpeechTimer').checked !== showSpeechTimer;
+
+        if (isDirty && !confirm("Alterações não salvas, tem certeza que deseja fechar?")) return;
         modal.style.display = "none";
     };
 }
@@ -845,22 +889,22 @@ if (btnSave) {
         const spinTime = parseInt(document.getElementById("spinTime").value) * 1000;
         const checkbox = document.getElementById('toggleSpeechTimer');
 
-        showSpeechTimer = checkbox.checked;
-
-        if (fireworksCount < 1 || !fireworksCount) {
-            showToast("⚠️ Número de foguetes deve ser maior ou igual a 1 (um)!", "warning");
+        if (!fireworksCount || fireworksCount < 1 || fireworksCount > 20) {
+            showToast("⚠️ Número de foguetes deve estar entre 1 e 20!", "warning");
             return false;
         }
 
-        if (spinTime < 1 || !spinTime) {
+        if (!spinTime || spinTime < 1000) {
             showToast("⚠️ O tempo de execução deve ser de pelo menos 1 (um) segundo!", "warning");
             return false;
         }
 
-        localStorage.setItem("fireworksCount", fireworksCount);
-        localStorage.setItem("spinTime", spinTime);
+        showSpeechTimer = checkbox.checked;
+        configFoguetes = fireworksCount;
+        configDuracao = spinTime;
         document.getElementById('speechTimer').style.display = showSpeechTimer ? 'block' : 'none';
 
+        publicar();
         showToast("✅ Configurações salvas!", "success");
         modal.style.display = "none";
     };
@@ -882,7 +926,7 @@ function showToast(message, type = 'info', duration = 5000) {
     if (!container) return;
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
-    toast.innerHTML = message.replace(/\n/g, "<br>");
+    toast.textContent = message;
 
     const progress = document.createElement("div");
     progress.className = "toast-progress";
@@ -905,6 +949,7 @@ function showToast(message, type = 'info', duration = 5000) {
     toast.addEventListener('click', removeToast);
     setTimeout(removeToast, duration);
 }
+window.showToast = showToast;
 
 let timer = 0;
 let timerInterval = null;
@@ -932,17 +977,24 @@ function resetTimer() {
 }
 
 window.onload = () => {
-    localStorage.setItem("fireworksCount", 5);
-    localStorage.setItem("spinTime", 10000);
+    // O navegador restaura o conteúdo do textarea no reload; a rodada sempre começa limpa
+    const namesInput = document.getElementById('names');
+    if (namesInput && !window.isViewer) namesInput.value = '';
 
     entries = [];
     arc = 0;
-    
-    const namesInput = document.getElementById('names');
-    if (namesInput && !window.isViewer) {
-        namesInput.value = '';
-    }
+    repouso = { angulo: 0, desde: agora() };
+    atualizarBotao();
+    drawWheel();
 
-    ctx.clearRect(0, 0, wheelSize, wheelSize);
-    animateIdle();
+    if (window.isViewer) {
+        showToast("🔊 Toque na tela para ativar o som.", "info", 6000);
+    }
 };
+
+if (window.isViewer === false) {
+    const namesInput = document.getElementById('names');
+    if (namesInput) namesInput.addEventListener('input', () => window.setupWheel(namesInput.value));
+}
+
+requestAnimationFrame(frame);

@@ -181,6 +181,8 @@ body.viewer {
     gap: 1.5rem;
     width: 300px;
     flex: 0 0 auto;
+    /* mesma altura da caixa da roleta: roleta + padding + borda (1px de cada lado) */
+    height: calc(var(--wheel-size) + var(--pane-pad) * 2 + 2px);
 }
 
 .input-actions {
@@ -192,7 +194,9 @@ body.viewer {
 
 textarea {
     width: 100%;
-    height: clamp(180px, 50vh, 400px);
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 120px;
     padding: 1.5rem;
     background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px);
@@ -947,9 +951,11 @@ button:disabled:hover::before {
     #inputArea {
         width: 100%;
         max-width: 400px;
+        height: auto;
     }
 
     textarea {
+        flex: none;
         height: clamp(120px, 25vh, 200px);
     }
 

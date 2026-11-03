@@ -230,7 +230,7 @@ let ultimoDesenho = 0;
 
 let configFoguetes = 5;
 let configDuracao = 10000;
-let timerEstado = { mostrar: false, rodando: false, base: 0, desde: 0 };
+let timerEstado = { mostrar: true, rodando: false, base: 0, desde: 0 };
 
 resizeWheelCanvas();
 window.addEventListener('resize', resizeWheelCanvas);
@@ -325,7 +325,7 @@ window.aplicarEstadoRemoto = function(estado) {
     arc = entries.length ? Math.PI * 2 / entries.length : 0;
     repouso = novo.repouso || { angulo: 0, desde: agora() };
     configFoguetes = novo.foguetes || 5;
-    timerEstado = { mostrar: false, rodando: false, base: 0, desde: 0, ...(novo.timer || {}) };
+    timerEstado = { mostrar: true, rodando: false, base: 0, desde: 0, ...(novo.timer || {}) };
     if (mudou) createSparkles();
 
     const novoGiro = novo.giro || null;

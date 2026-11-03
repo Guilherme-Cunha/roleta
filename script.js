@@ -280,14 +280,18 @@ function publicar(opcoes) {
     }
 }
 
-// Anfitrião: nomes digitados
+// Lista usada quando o anfitrião ainda não informou nenhum nome
+const NOMES_PADRAO = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
+
+// Anfitrião: nomes digitados (vazio = lista padrão)
 window.setupWheel = function(texto = '') {
     if (window.isViewer || giro) return;
 
-    const raw = texto
+    const digitados = texto
         .split(/[\n,]+/)
         .map(n => n.trim().slice(0, 60))
         .filter(n => n);
+    const raw = digitados.length ? digitados : NOMES_PADRAO;
 
     const colorArr = generateDistinctColors(raw.length);
     const lote = Date.now().toString(36);
@@ -1002,16 +1006,15 @@ window.onload = () => {
     const namesInput = document.getElementById('names');
     if (namesInput) namesInput.value = '';
 
-    entries = [];
-    arc = 0;
-    repouso = { angulo: 0, desde: agora() };
-    atualizarBotao();
-    drawWheel();
+    window.setupWheel('');
 };
 
 if (window.isViewer === false) {
     const namesInput = document.getElementById('names');
     if (namesInput) namesInput.addEventListener('input', () => window.setupWheel(namesInput.value));
+
+    // Estado inicial do anfitrião (lista padrão) já pronto antes de assumir o banco
+    window.setupWheel('');
 }
 
 requestAnimationFrame(frame);

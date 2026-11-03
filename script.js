@@ -257,7 +257,7 @@ function atualizarBotao() {
     const emGiro = !!giro;
 
     if (spinBtn) {
-        spinBtn.style.display = (window.isViewer || entries.length === 0) ? 'none' : 'block';
+        spinBtn.style.display = (window.isViewer || entries.length === 0 || usandoListaPadrao) ? 'none' : 'block';
         spinBtn.disabled = emGiro;
     }
     if (namesInput) namesInput.disabled = emGiro;
@@ -281,6 +281,7 @@ function publicar(opcoes) {
 }
 
 // Lista usada quando o anfitrião ainda não informou nenhum nome
+let usandoListaPadrao = true;   // a lista padrão é só demonstração: não pode ser sorteada
 const NOMES_PADRAO = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
 
 // Anfitrião: nomes digitados (vazio = lista padrão)
@@ -292,6 +293,7 @@ window.setupWheel = function(texto = '') {
         .map(n => n.trim().slice(0, 60))
         .filter(n => n);
     const raw = digitados.length ? digitados : NOMES_PADRAO;
+    usandoListaPadrao = digitados.length === 0;
 
     const colorArr = generateDistinctColors(raw.length);
     const lote = Date.now().toString(36);
@@ -575,7 +577,7 @@ function anguloEm(now) {
 
 // Anfitrião: sorteia o vencedor primeiro e calcula o ângulo final que o faz cair no ponteiro
 window.girar = function() {
-    if (window.isViewer || entries.length === 0 || giro) return;
+    if (window.isViewer || entries.length === 0 || usandoListaPadrao || giro) return;
 
     liberarAudio();
     startTimer();

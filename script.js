@@ -230,6 +230,7 @@ let ultimoDesenho = 0;
 
 let configFoguetes = 5;
 let configDuracao = 10000;
+let timerEstado = { mostrar: false, rodando: false, base: 0, desde: 0 };
 
 resizeWheelCanvas();
 window.addEventListener('resize', resizeWheelCanvas);
@@ -268,7 +269,8 @@ window.obterEstado = function() {
         entries: entries.map(({ id, name, color }) => ({ id, name, color })),
         repouso: { angulo: repouso.angulo, desde: repouso.desde },
         giro: giro ? { ...giro } : null,
-        foguetes: configFoguetes
+        foguetes: configFoguetes,
+        timer: { ...timerEstado }
     };
 };
 
@@ -317,6 +319,7 @@ window.aplicarEstadoRemoto = function(estado) {
     arc = entries.length ? Math.PI * 2 / entries.length : 0;
     repouso = novo.repouso || { angulo: 0, desde: agora() };
     configFoguetes = novo.foguetes || 5;
+    timerEstado = { mostrar: false, rodando: false, base: 0, desde: 0, ...(novo.timer || {}) };
     if (mudou) createSparkles();
 
     const novoGiro = novo.giro || null;
@@ -327,6 +330,9 @@ window.aplicarEstadoRemoto = function(estado) {
         stopHackingEffect();
         esconderModalVencedor();
     } else if (!giro || giro.id !== novoGiro.id) {
+        // Giro novo substitui qualquer resultado/efeito do anterior (updates podem ser coalescidos)
+        stopHackingEffect();
+        esconderModalVencedor();
         giro = novoGiro;
         giroConcluidoId = null;
         giroEfeitosId = null;
@@ -685,6 +691,7 @@ function frame() {
     const now = agora();
     startAngle = anguloEm(now);
 
+    atualizarTimerUI(now);
     if (giro) processarGiro(now);
 
     const perf = performance.now();
@@ -864,7 +871,7 @@ if (btnOpen) {
     btnOpen.onclick = () => {
         document.getElementById("fireworksCount").value = configFoguetes;
         document.getElementById("spinTime").value = configDuracao / 1000;
-        document.getElementById('toggleSpeechTimer').checked = showSpeechTimer;
+        document.getElementById('toggleSpeechTimer').checked = timerEstado.mostrar;
         modal.style.display = "flex";
     };
 }
@@ -876,7 +883,7 @@ if (btnClose) {
 
         const isDirty = fireworksCount !== configFoguetes
             || spinTime !== configDuracao
-            || document.getElementById('toggleSpeechTimer').checked !== showSpeechTimer;
+            || document.getElementById('toggleSpeechTimer').checked !== timerEstado.mostrar;
 
         if (isDirty && !confirm("Alterações não salvas, tem certeza que deseja fechar?")) return;
         modal.style.display = "none";
@@ -899,10 +906,9 @@ if (btnSave) {
             return false;
         }
 
-        showSpeechTimer = checkbox.checked;
+        timerEstado.mostrar = checkbox.checked;
         configFoguetes = fireworksCount;
         configDuracao = spinTime;
-        document.getElementById('speechTimer').style.display = showSpeechTimer ? 'block' : 'none';
 
         publicar();
         showToast("✅ Configurações salvas!", "success");
@@ -951,45 +957,56 @@ function showToast(message, type = 'info', duration = 5000) {
 }
 window.showToast = showToast;
 
-let timer = 0;
-let timerInterval = null;
-let showSpeechTimer = false;
+// TIMER
+// Faz parte do estado publicado: o valor é derivado do relógio do servidor
+// (base + tempo corrido desde `desde`), então anfitrião e espectadores mostram o mesmo.
+function segundosTimer(now) {
+    const corrido = timerEstado.rodando ? Math.max(0, Math.floor((now - timerEstado.desde) / 1000)) : 0;
+    return timerEstado.base + corrido;
+}
 
 function startTimer() {
-    if (timerInterval) return;
-    timerInterval = setInterval(() => {
-        timer++;
-        const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
-        const seconds = String(timer % 60).padStart(2, '0');
-        document.getElementById('speechTimer').textContent = `${minutes}:${seconds}`;
-    }, 1000);
+    if (timerEstado.rodando) return;
+    timerEstado.rodando = true;
+    timerEstado.desde = agora();
 }
 
 function pauseTimer() {
-    clearInterval(timerInterval);
-    timerInterval = null;
+    if (!timerEstado.rodando) return;
+    timerEstado.base = segundosTimer(agora());
+    timerEstado.rodando = false;
 }
 
-function resetTimer() {
-    pauseTimer();
-    timer = 0;
-    document.getElementById('speechTimer').textContent = '00:00';
+let timerTextoAtual = '';
+function atualizarTimerUI(now) {
+    const el = document.getElementById('speechTimer');
+    const visivel = timerEstado.mostrar ? 'block' : 'none';
+    if (el.style.display !== visivel) el.style.display = visivel;
+
+    const total = segundosTimer(now);
+    const texto = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+    if (texto !== timerTextoAtual) {
+        timerTextoAtual = texto;
+        el.textContent = texto;
+    }
 }
 
 window.onload = () => {
+    if (window.isViewer) {
+        // Não limpa o estado aqui: o banco pode já ter respondido antes do load terminar
+        showToast("🔊 Toque na tela para ativar o som.", "info", 6000);
+        return;
+    }
+
     // O navegador restaura o conteúdo do textarea no reload; a rodada sempre começa limpa
     const namesInput = document.getElementById('names');
-    if (namesInput && !window.isViewer) namesInput.value = '';
+    if (namesInput) namesInput.value = '';
 
     entries = [];
     arc = 0;
     repouso = { angulo: 0, desde: agora() };
     atualizarBotao();
     drawWheel();
-
-    if (window.isViewer) {
-        showToast("🔊 Toque na tela para ativar o som.", "info", 6000);
-    }
 };
 
 if (window.isViewer === false) {

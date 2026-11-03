@@ -57,6 +57,17 @@ function iniciarEspectador() {
     if (espectadorIniciado) return;
     espectadorIniciado = true;
     onValue(estadoRef, (snap) => window.aplicarEstadoRemoto(snap.val()));
+
+    let anfitriaoPresente = null;
+    onValue(hostRef, (snap) => {
+        const presente = snap.exists();
+        if (presente && anfitriaoPresente === false) {
+            window.showToast('✅ Anfitrião conectado.', 'success');
+        } else if (!presente && anfitriaoPresente !== false) {
+            window.showToast('⏳ Aguardando o anfitrião iniciar a roleta...', 'info');
+        }
+        anfitriaoPresente = presente;
+    });
 }
 
 // ANFITRIÃO: ao abrir, assume o controle e zera o banco com os dados padrão

@@ -1,0 +1,25 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "roleta": {
+      ".read": true,
+      "host": {
+        ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || data.child('lastSeen').val() < now - 90000)",
+        ".validate": "newData.hasChildren(['uid', 'lastSeen']) && newData.child('uid').val() === auth.uid"
+      },
+      "estado": {
+        ".write": "auth != null && newData.parent().child('host/uid').val() === auth.uid",
+        ".validate": "newData.hasChild('repouso') && newData.child('foguetes').isNumber() && newData.child('foguetes').val() >= 1 && newData.child('foguetes').val() <= 20",
+        "entries": {
+          "$i": {
+            "name": { ".validate": "newData.isString() && newData.val().length <= 60" }
+          }
+        }
+      },
+      "$outro": {
+        ".write": "auth != null && !newData.exists() && newData.parent().child('host/uid').val() === auth.uid"
+      }
+    }
+  }
+}

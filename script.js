@@ -218,7 +218,7 @@ function flashPointer() {
 // (ver obterEstado / aplicarEstadoRemoto).
 const POINTER_ANGLE = Math.PI * 3 / 2;     // ponteiro no topo do canvas
 const IDLE_SPEED = 0.002 / 30;             // rad/ms (giro lento enquanto parada)
-const ATRASO_BONECO = 600;                 // tempo do boneco empurrar antes da roleta girar
+const ATRASO_BONECO = 1200;                // queda + pouso do Neo antes da roleta girar
 
 let startAngle = 0;                        // ângulo atual (derivado do tempo)
 let arc = 0;
@@ -610,7 +610,7 @@ window.girar = function() {
 
 function iniciarGiroLocal() {
     lastTickAngle = giro.from;
-    window.animarBoneco();
+    window.animarBoneco(giro.startTime);
 }
 
 function processarGiro(now) {
@@ -839,28 +839,113 @@ function startFireworksAnimation() {
     }, 30);
 }
 
-// BONEQUINHO SVG
-window.animarBoneco = function() {
+// NEO NO GIRO
+// Cai do céu, levanta fumaça ao pousar, dá o impulso no instante em que a roleta começa
+// a girar (onda de choque) e sai voando. A linha do tempo parte de giro.startTime, então
+// anfitrião e espectadores veem a mesma cena (quem chega atrasado entra no meio dela).
+let neoPousando = false;
+const NEO_SAIDA = 700;
+
+function soltarFumaca(x, y, qtd) {
+    const wc = document.getElementById('wheelContainer');
+    for (let i = 0; i < qtd; i++) {
+        const tam = aleatorio(30, 64);
+        const el = document.createElement('div');
+        el.className = 'fumaca';
+        el.style.cssText = `left:${x - tam / 2}px; top:${y - tam / 2}px; width:${tam}px; height:${tam}px`;
+        wc.appendChild(el);
+
+        const lado = qtd > 1 ? (i / (qtd - 1) - 0.5) * 2 : 0;   // -1..1
+        const dx = lado * aleatorio(50, 120);
+        const dy = -aleatorio(10, 70);
+        el.animate([
+            { transform: 'translate(0, 0) scale(0.4)', opacity: 0.85 },
+            { transform: `translate(${dx}px, ${dy}px) scale(${aleatorio(1.8, 2.8)})`, opacity: 0 }
+        ], { duration: aleatorio(700, 1100), easing: 'ease-out' }).onfinish = () => el.remove();
+    }
+}
+
+function ondaDeChoque(x, y, raio) {
+    const wc = document.getElementById('wheelContainer');
+    [0, 110].forEach((atraso) => {
+        const el = document.createElement('div');
+        el.className = 'onda-choque';
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        wc.appendChild(el);
+        const base = 'translate(-50%, -50%) perspective(300px) rotateX(70deg)';
+        el.animate([
+            { transform: `${base} scale(0.2)`, opacity: 0.9 },
+            { transform: `${base} scale(${(raio * 2) / 40})`, opacity: 0 }
+        ], { duration: 700, delay: atraso, easing: 'ease-out', fill: 'backwards' }).onfinish = () => el.remove();
+    });
+}
+
+function tremerRoleta() {
+    document.getElementById('wheelContainer').animate([
+        { transform: 'translate(0, 0)' },
+        { transform: 'translate(-3px, 4px)' },
+        { transform: 'translate(3px, -3px)' },
+        { transform: 'translate(0, 0)' }
+    ], { duration: 220 });
+}
+
+window.animarBoneco = function(startTime) {
     const boneco = document.getElementById('boneco');
-    if (!boneco || entries.length === 0 || boneco.classList.contains('ativo')) return;
+    if (!boneco || !boneco.animate || entries.length === 0 || neoPousando) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    boneco.classList.add('ativo');
+    neoEl.getAnimations().forEach(a => a.cancel());   // só um Neo em cena por vez
+    const wc = document.getElementById('wheelContainer');
+    const bw = boneco.offsetWidth;
+    const bh = boneco.offsetHeight;
+    const ws = canvas.offsetWidth;
+    const cr = wc.getBoundingClientRect();
 
-    const tempoCaminhada = 500;
-    setTimeout(() => {
-        boneco.classList.add('empurrando');
-    }, tempoCaminhada);
+    // Pousa na lateral esquerda da roleta, com os pés a ~80% da altura dela
+    const x = Math.max(canvas.offsetLeft - bw * 0.55, 6 - cr.left);
+    const yPouso = canvas.offsetTop + ws * 0.8 - bh;
+    const yTopo = yPouso - Math.max(260, ws * 0.6);
+    const xFim = x + ws * 0.5;
+    const yFim = -cr.top - bh - 60;                  // sai pelo topo da tela
+    const pesX = x + bw / 2;
+    const pesY = yPouso + bh;
 
-    const tempoEmpurrao = 1500;
-    setTimeout(() => {
+    const total = ATRASO_BONECO + NEO_SAIDA;
+    const decorrido = Math.min(Math.max(ATRASO_BONECO - (startTime - agora()), 0), ATRASO_BONECO);
+    const pose = (px, py, sx, sy, rot = 0) => `translate(${px}px, ${py}px) rotate(${rot}deg) scale(${sx}, ${sy})`;
+    const t = (ms) => ms / total;
+
+    const quadros = [
+        { offset: 0, transform: pose(x, yTopo, 1, 1.15), opacity: 0, easing: 'ease-in' },
+        { offset: t(60), transform: pose(x, yTopo + (yPouso - yTopo) * 0.05, 1, 1.15), opacity: 1, easing: 'ease-in' },
+        { offset: t(300), transform: pose(x, yPouso, 1, 1.15), opacity: 1, easing: 'ease-out' },        // pouso
+        { offset: t(380), transform: pose(x, yPouso, 1.2, 0.8), opacity: 1 },                           // amortece
+        { offset: t(450), transform: pose(x, yPouso, 1, 1), opacity: 1 },
+        { offset: t(ATRASO_BONECO - 150), transform: pose(x, yPouso, 1, 1), opacity: 1 },
+        { offset: t(ATRASO_BONECO), transform: pose(x, yPouso, 1.12, 0.78), opacity: 1 },              // agacha
+        { offset: t(ATRASO_BONECO + 80), transform: pose(x, yPouso - ws * 0.05, 0.85, 1.25), opacity: 1, easing: 'ease-in' }, // impulso
+        { offset: 1, transform: pose(xFim, yFim, 0.5, 0.5, 35), opacity: 0 }
+    ];
+
+    neoPousando = true;
+    const anim = boneco.animate(quadros, { duration: total, easing: 'linear' });
+    anim.currentTime = decorrido;
+    anim.onfinish = anim.oncancel = () => {
+        neoPousando = false;
+        boneco.classList.remove('empurrando', 'decolando');
+    };
+
+    const agendar = (ms, fn) => { if (ms >= decorrido) setTimeout(fn, ms - decorrido); };
+    agendar(300, () => { soltarFumaca(pesX, pesY, 9); tremerRoleta(); });
+    agendar(450, () => boneco.classList.add('empurrando'));
+    agendar(ATRASO_BONECO, () => {
         boneco.classList.remove('empurrando');
-        boneco.classList.add('saindo');
-    }, tempoCaminhada + tempoEmpurrao);
-
-    const tempoSaida = 500;
-    setTimeout(() => {
-        boneco.classList.remove('ativo', 'saindo', 'empurrando');
-    }, tempoCaminhada + tempoEmpurrao + tempoSaida + 50);
+        boneco.classList.add('decolando');   // braço erguido na decolagem
+        ondaDeChoque(pesX, pesY, ws * 0.9);
+        soltarFumaca(pesX, pesY, 12);
+        tremerRoleta();
+    });
 };
 
 const spinBtnEl = document.getElementById('spinBtn');
@@ -1024,6 +1109,100 @@ if (window.isViewer === false) {
 
     // Estado inicial do anfitrião (lista padrão) já pronto antes de assumir o banco
     window.setupWheel('');
+}
+
+// NEO VOADOR
+// A cada 10–30 s (sorteado) ele cruza a tela voando (passagem direta, mergulho/subida ou parada no ar
+// e arrancada). É só decoração: cada cliente sorteia o próprio trajeto.
+const neoEl = document.getElementById('bonecoVoador');
+let neoEmVoo = false;
+// Intervalo (ms) entre uma aparição e a próxima: sorteado a cada vez
+const NEO_INTERVALO_MIN = 10000;
+const NEO_INTERVALO_MAX = 30000;
+const aleatorio = (min, max) => min + Math.random() * (max - min);
+const lerp = (a, b, p) => a + (b - a) * p;
+const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+const easeIn = (p) => p * p * p;
+
+function agendarNeo(ms = aleatorio(NEO_INTERVALO_MIN, NEO_INTERVALO_MAX)) {
+    setTimeout(voarNeo, ms);
+}
+
+function voarNeo() {
+    if (neoEmVoo || neoPousando || document.hidden) {
+        agendarNeo(500);
+        return;
+    }
+    agendarNeo();
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const larg = neoEl.offsetWidth || 160;
+    const alt = neoEl.offsetHeight || 70;
+    const dir = Math.random() < 0.5 ? 1 : -1;          // 1: esquerda→direita
+    const xIni = dir === 1 ? -larg - 10 : w + 10;
+    const xFim = dir === 1 ? w + 10 : -larg - 10;
+    const sorteio = Math.random();
+    const yMax = Math.max(h - alt, alt);
+
+    let yIni = aleatorio(0.08, 0.8) * yMax;
+    let yFim = aleatorio(0.05, 0.85) * yMax;
+    let duracao = aleatorio(2200, 3000);
+    let paira = false;
+
+    if (sorteio < 0.25) {              // mergulho: do alto até embaixo
+        yIni = -alt;
+        yFim = yMax + alt * 0.5;
+    } else if (sorteio < 0.45) {       // subida: de baixo até o alto
+        yIni = yMax + alt * 0.5;
+        yFim = -alt;
+    } else if (sorteio < 0.75) {       // chega, paira no ar e arranca
+        paira = true;
+        duracao = aleatorio(3000, 3600);
+        yIni = aleatorio(0.1, 0.4) * yMax;
+        yFim = aleatorio(0.1, 0.4) * yMax;
+    }
+
+    const giro = !paira && Math.random() < 0.4 ? 360 : 0;   // tonel (barrel roll)
+    const inclinacao = Math.atan2(yFim - yIni, Math.abs(xFim - xIni)) * 180 / Math.PI;
+    const yParada = aleatorio(0.25, 0.65) * yMax;
+    const xParada = lerp(xIni, xFim, 0.5);
+
+    const posicao = (p) => {            // p: 0..1 do voo -> {x, y, rot}
+        if (!paira) {
+            return { x: lerp(xIni, xFim, p), y: lerp(yIni, yFim, p) + Math.sin(p * Math.PI * 2) * 25, rot: inclinacao + giro * p };
+        }
+        if (p < 0.35) {                 // chegada, desacelerando
+            const q = easeOut(p / 0.35);
+            return { x: lerp(xIni, xParada, q), y: lerp(yIni, yParada, q), rot: lerp(inclinacao, 0, q) };
+        }
+        if (p < 0.65) {                 // paira balançando levemente
+            const q = (p - 0.35) / 0.3;
+            return { x: xParada + dir * q * 20, y: yParada + Math.sin(q * Math.PI * 2) * 10, rot: Math.sin(q * Math.PI * 2) * 4 };
+        }
+        const q = easeIn((p - 0.65) / 0.35);   // arrancada
+        return { x: lerp(xParada + dir * 20, xFim, q), y: lerp(yParada, yFim, q), rot: lerp(0, inclinacao, q) };
+    };
+
+    const N = 48;
+    const quadros = [];
+    for (let i = 0; i <= N; i++) {
+        const p = i / N;
+        const { x, y, rot } = posicao(p);
+        quadros.push({
+            transform: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scaleX(${dir}) rotate(${rot.toFixed(1)}deg)`,
+            opacity: p < 0.06 ? p / 0.06 : p > 0.94 ? (1 - p) / 0.06 : 1,
+            offset: p
+        });
+    }
+
+    neoEmVoo = true;
+    const anim = neoEl.animate(quadros, { duration: duracao, easing: 'linear' });
+    anim.onfinish = anim.oncancel = () => { neoEmVoo = false; };
+}
+
+if (neoEl.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    agendarNeo(aleatorio(3000, 8000));
 }
 
 requestAnimationFrame(frame);

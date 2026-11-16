@@ -36,6 +36,7 @@ function resizeMatrixCanvas() {
 window.addEventListener('resize', resizeMatrixCanvas);
 
 function drawMatrix() {
+    if (document.hidden) return;
     ctxBg.fillStyle = "rgba(0, 0, 0, 0.05)";
     ctxBg.fillRect(0, 0, canvasBg.width, canvasBg.height);
 
@@ -82,12 +83,13 @@ function drawSparkles() {
         const y = center + Math.sin(angle) * r;
 
         ctx.beginPath();
+        ctx.fillStyle = `rgba(0, 255, 136, ${p.alpha * 0.25})`;
+        ctx.arc(x, y, p.radius * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
         ctx.fillStyle = `rgba(0, 255, 136, ${p.alpha})`;
-        ctx.shadowColor = 'rgba(0, 255, 136, 0.9)';
-        ctx.shadowBlur = 6;
         ctx.arc(x, y, p.radius, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
 
         p.alpha += p.deltaAlpha;
         if (p.alpha >= 1 || p.alpha <= 0.15) p.deltaAlpha *= -1;
@@ -216,7 +218,7 @@ function flashPointer() {
 // (ver obterEstado / aplicarEstadoRemoto).
 const POINTER_ANGLE = Math.PI * 3 / 2;     // ponteiro no topo do canvas
 const IDLE_SPEED = 0.002 / 30;             // rad/ms (giro lento enquanto parada)
-const ATRASO_BONECO = 1500;                // tempo do boneco empurrar antes da roleta girar
+const ATRASO_BONECO = 600;                 // tempo do boneco empurrar antes da roleta girar
 
 let startAngle = 0;                        // ângulo atual (derivado do tempo)
 let arc = 0;
@@ -355,75 +357,75 @@ window.aplicarEstadoRemoto = function(estado) {
     atualizarBotao();
 };
 
-function drawWheel(blinkId = null, alpha = 1) {
+// A roleta (fatias + nomes) é desenhada uma vez num canvas de cache; a cada quadro
+// só é rotacionada via drawImage. O brilho vem do drop-shadow em CSS.
+let rodaCache = null;
+let rodaCacheChave = '';
+
+function montarRodaCache() {
+    const dpr = window.devicePixelRatio || 1;
+    const chave = `${wheelSize}|${dpr}|${entries.map(e => e.id).join(',')}`;
+    if (rodaCache && chave === rodaCacheChave) return;
+    rodaCacheChave = chave;
+
+    rodaCache = document.createElement('canvas');
+    rodaCache.width = Math.round(wheelSize * dpr);
+    rodaCache.height = Math.round(wheelSize * dpr);
+    const c = rodaCache.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
     const center = wheelSize / 2;
     const radius = center - 4;
-
-    ctx.clearRect(0, 0, wheelSize, wheelSize);
-
-    if (entries.length === 0) return;
-
-    ctx.shadowColor = "rgba(0,255,0,0.5)";
-    ctx.shadowBlur = 15;
+    const fontSize = Math.max(10, Math.round(wheelSize / 33));
+    c.font = `bold ${fontSize}px Arial`;
 
     for (let i = 0; i < entries.length; i++) {
         const entry = entries[i];
-        const angle = startAngle + i * arc;
+        const angle = i * arc;
 
-        if (blinkId && entry.id === blinkId) {
-            ctx.fillStyle = hexToRgba(entry.color, alpha);
-        } else {
-            ctx.fillStyle = entry.color;
-        }
+        c.fillStyle = entry.color;
+        c.beginPath();
+        c.moveTo(center, center);
+        c.arc(center, center, radius, angle, angle + arc, false);
+        c.lineTo(center, center);
+        c.fill();
 
-        ctx.beginPath();
-        ctx.moveTo(center, center);
-        ctx.arc(center, center, radius, angle, angle + arc, false);
-        ctx.lineTo(center, center);
-        ctx.fill();
-
-        ctx.save();
-        ctx.fillStyle = '#000';
-        const fontSize = Math.max(10, Math.round(wheelSize / 33));
-        const textRadius = radius * 0.6;
-        ctx.font = `bold ${fontSize}px Arial`;
-        ctx.translate(
-            center + Math.cos(angle + arc / 2) * textRadius,
-            center + Math.sin(angle + arc / 2) * textRadius
+        c.save();
+        c.fillStyle = '#000';
+        c.translate(
+            center + Math.cos(angle + arc / 2) * radius * 0.6,
+            center + Math.sin(angle + arc / 2) * radius * 0.6
         );
-        ctx.rotate(angle + arc / 2);
-        ctx.fillText(entry.name, -ctx.measureText(entry.name).width / 2, 0);
-        ctx.restore();
+        c.rotate(angle + arc / 2);
+        c.fillText(entry.name, -c.measureText(entry.name).width / 2, 0);
+        c.restore();
     }
-    ctx.shadowBlur = 0;
 }
 
-function hexToRgba(hex, alpha = 1) {
-    let r = 0, g = 0, b = 0;
-    if (hex.startsWith('hsl')) {
-        const hsl = hex.match(/[\d.]+/g);
-        const h = Number(hsl[0]);
-        const s = Number(hsl[1]) / 100;
-        const l = Number(hsl[2]) / 100;
-        const a = l <= 0.5 ? l * (1 + s) : l + s - l * s;
-        const f = 2 * l - a;
-        function hue2rgb(f, a, b) {
-            if (b < 0) b += 1;
-            if (b > 1) b -= 1;
-            if (b < 1 / 6) return f + (a - f) * 6 * b;
-            if (b < 1 / 2) return a;
-            if (b < 2 / 3) return f + (a - f) * (2/3 - b) * 6;
-            return f;
+function drawWheel(blinkId = null, alpha = 1) {
+    ctx.clearRect(0, 0, wheelSize, wheelSize);
+    if (entries.length === 0) return;
+
+    montarRodaCache();
+
+    const center = wheelSize / 2;
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(startAngle);
+    ctx.drawImage(rodaCache, -center, -center, wheelSize, wheelSize);
+
+    // Vencedor pulsando: escurece a fatia de forma intermitente
+    if (blinkId) {
+        const idx = entries.findIndex(e => e.id === blinkId);
+        if (idx >= 0) {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, center - 4, idx * arc, (idx + 1) * arc, false);
+            ctx.fillStyle = `rgba(0,0,0,${(1 - alpha).toFixed(3)})`;
+            ctx.fill();
         }
-        r = Math.round(hue2rgb(f, a, h/360 + 1/3) * 255);
-        g = Math.round(hue2rgb(f, a, h/360) * 255);
-        b = Math.round(hue2rgb(f, a, h/360 - 1/3) * 255);
-    } else if (hex.length === 7) {
-        r = parseInt(hex.slice(1,3),16);
-        g = parseInt(hex.slice(3,5),16);
-        b = parseInt(hex.slice(5,7),16);
     }
-    return `rgba(${r},${g},${b},${alpha})`;
+    ctx.restore();
 }
 
 // HACKING EFFECT
@@ -655,7 +657,12 @@ function confirmarVencedor() {
     startAngle = 0;
 
     esconderModalVencedor();
-    if (entries.length === 0) pauseTimer();
+    if (entries.length === 0) {
+        pauseTimer();
+        const namesInput = document.getElementById('names');
+        if (namesInput) namesInput.value = '';
+        window.setupWheel('');
+    }
 
     atualizarBotao();
     publicar();
@@ -701,7 +708,7 @@ function frame() {
     if (giro) processarGiro(now);
 
     const perf = performance.now();
-    if (giro || vencedorId || perf - ultimoDesenho >= 30) {
+    if (giro || vencedorId || perf - ultimoDesenho >= 50) {
         ultimoDesenho = perf;
         if (entries.length > 0) {
             const alpha = vencedorId ? 0.7 + 0.3 * Math.sin(perf / 500) : 1;
@@ -839,18 +846,18 @@ window.animarBoneco = function() {
 
     boneco.classList.add('ativo');
 
-    const tempoCaminhada = 1200;
+    const tempoCaminhada = 500;
     setTimeout(() => {
         boneco.classList.add('empurrando');
     }, tempoCaminhada);
 
-    const tempoEmpurrao = 3200;
+    const tempoEmpurrao = 1500;
     setTimeout(() => {
         boneco.classList.remove('empurrando');
         boneco.classList.add('saindo');
     }, tempoCaminhada + tempoEmpurrao);
 
-    const tempoSaida = 1200;
+    const tempoSaida = 500;
     setTimeout(() => {
         boneco.classList.remove('ativo', 'saindo', 'empurrando');
     }, tempoCaminhada + tempoEmpurrao + tempoSaida + 50);

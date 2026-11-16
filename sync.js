@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCdnTHJPV1Ce0T4wVVF9Lhy1yOmM8YHfwU",
@@ -75,6 +74,8 @@ window.publicarEstado = () => {};
 
 async function iniciarAnfitriao() {
     try {
+        // Auth só é necessário para o anfitrião: espectadores não baixam esse módulo
+        const { getAuth, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js");
         uid = (await signInAnonymously(getAuth(app))).user.uid;
         await conectado;
 

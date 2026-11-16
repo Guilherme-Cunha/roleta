@@ -164,7 +164,7 @@ body.viewer {
 
 .container > * {
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(8px);
     border: 1px solid var(--glass-border);
     border-radius: 20px;
     padding: var(--pane-pad);
@@ -199,7 +199,6 @@ textarea {
     min-height: 120px;
     padding: 1.5rem;
     background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
     border-radius: 15px;
     color: var(--text-primary);
@@ -318,7 +317,6 @@ button:disabled:hover::before {
     filter: drop-shadow(0 0 20px var(--primary-color));
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
     border: 2px solid var(--glass-border);
 }
 
@@ -365,7 +363,7 @@ button:disabled:hover::before {
     opacity: 0;
     pointer-events: none;
     transform: translateX(0);
-    transition: all 0.8s ease;
+    transition: all 0.4s ease;
     z-index: 12;
     filter: drop-shadow(0 0 15px var(--primary-color));
 }
@@ -380,7 +378,7 @@ button:disabled:hover::before {
 .boneco.ativo {
     opacity: 1;
     transform: translateX(var(--boneco-x));
-    animation: entradaEspecial 1.2s ease-out;
+    animation: entradaEspecial 0.5s ease-out;
 }
 
 @keyframes entradaEspecial {
@@ -419,7 +417,7 @@ button:disabled:hover::before {
 
 /* EMPURRÃO MAIS DRAMÁTICO */
 .boneco.empurrando {
-    animation: empurraoDramatico 3.2s ease-in-out;
+    animation: empurraoDramatico 1.5s ease-in-out;
 }
 
 @keyframes empurraoDramatico {
@@ -459,7 +457,7 @@ button:disabled:hover::before {
 /* SAÍDA COM ESTILO */
 .boneco.saindo {
     opacity: 1;
-    animation: saidaEstilosa 1.5s ease-in forwards;
+    animation: saidaEstilosa 0.5s ease-in forwards;
 }
 
 @keyframes saidaEstilosa {
@@ -527,12 +525,12 @@ button:disabled:hover::before {
 /* ANIMAÇÃO DE EMPURRÃO DOS BRAÇOS */
 .boneco.empurrando #braco {
     transform-origin: 50px 70px;
-    animation: empurrarBraco 0.6s ease-in-out 4;
+    animation: empurrarBraco 0.35s ease-in-out 4;
 }
 
 .boneco.empurrando #braco-direito {
     transform-origin: 50px 70px;
-    animation: empurrarBracoDireito 0.6s ease-in-out 4;
+    animation: empurrarBracoDireito 0.35s ease-in-out 4;
 }
 
 @keyframes empurrarBraco {
@@ -865,7 +863,7 @@ button:disabled:hover::before {
 
 .toast {
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(8px);
     border: 1px solid var(--glass-border);
     border-radius: 15px;
     padding: 1.2rem;
@@ -916,7 +914,7 @@ button:disabled:hover::before {
     top: 20px;
     left: 20px;
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(8px);
     padding: 0.8rem 1.5rem;
     border-radius: 50px;
     border: 1px solid var(--glass-border);

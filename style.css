@@ -39,7 +39,7 @@ body {
        (modal, toasts, timer) rolarem junto com a página no celular. */
     --pane-pad: 2rem;
     --wheel-size: min(700px, calc(100vw - 30rem), 70vh);
-    --bw: clamp(44px, calc(var(--wheel-size) * 0.18), 90px);
+    --bw: clamp(64px, calc(var(--wheel-size) * 0.26), 128px);
     --boneco-x: calc(var(--wheel-size) * 0.52);
     --ptr: clamp(26px, calc(var(--wheel-size) * 0.08), 40px);
 }
@@ -393,6 +393,14 @@ button:hover .ripple {
     opacity: 0.3;
 }
 
+/* hover: o fundo próprio do botão (#spinBtn) vence o hover genérico, então a inversão de cores precisa ser repetida aqui */
+#spinBtn:not(:disabled):hover {
+    background: var(--primary-color);
+    color: #000;
+    text-shadow: none;
+    box-shadow: 0 0 30px var(--primary-color);
+}
+
 #spinBtn.pressionado {
     animation: apertarGirar 0.35s ease-out;
 }
@@ -436,7 +444,7 @@ button:hover .ripple {
 
 /* braço empurrando a roleta enquanto ele se prepara */
 .boneco.empurrando #braco {
-    transform-origin: 68px 60px;
+    transform-origin: 66px 62px;
     animation: empurrarBraco 0.25s ease-in-out infinite alternate;
 }
 
@@ -446,7 +454,7 @@ button:hover .ripple {
 
 /* braço erguido (punho para o alto) quando ele decola */
 .boneco.decolando #braco {
-    transform-origin: 68px 60px;
+    transform-origin: 66px 62px;
     transform: rotate(-105deg);
     transition: transform 0.12s ease-out;
 }
@@ -494,7 +502,6 @@ button:hover .ripple {
     text-align: center;
     border: 1px solid var(--primary-color);
     box-shadow: 0 0 30px rgba(0, 255, 136, 0.5), inset 0 0 40px rgba(0, 255, 136, 0.08);
-    animation: modalAppear 0.5s ease;
     max-width: 500px;
     width: 90%;
     color: var(--text-primary);
@@ -511,11 +518,6 @@ button:hover .ripple {
     content: '█';
     margin-left: 0.3em;
     animation: piscar 1s steps(1) infinite;
-}
-
-@keyframes modalAppear {
-    0% { transform: scale(0.7); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
 }
 
 #winner {
@@ -846,28 +848,42 @@ button:hover .ripple {
     white-space: nowrap;
 }
 
-/* timer da pessoa que está falando: menor, abaixo do geral */
+/* tempos de cada pessoa: um abaixo do outro, menores que o geral; o de quem fala agora fica por último */
 #personTimer {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.6rem;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-height: min(45vh, 320px);
+    overflow-y: auto;
     padding-top: 0.4rem;
     border-top: 1px solid var(--glass-border);
     font-size: 0.85rem;
+    pointer-events: auto; /* o box ignora cliques; a lista precisa rolar quando há muitas pessoas */
+}
+
+.pessoa-linha {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.8rem;
     color: var(--text-secondary);
 }
 
-#personName {
+.pessoa-linha .nome {
     max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-#personTime {
+.pessoa-linha .tempo {
     font-weight: 600;
     color: var(--text-primary);
+}
+
+.pessoa-linha.atual,
+.pessoa-linha.atual .tempo {
+    color: var(--primary-color);
 }
 
 /* RESPONSIVIDADE */
@@ -968,6 +984,20 @@ button:hover .ripple {
     position: absolute;
     inset: 0;
     background: radial-gradient(circle at center, rgba(0, 255, 136, 0.55), rgba(0, 255, 136, 0.12) 55%, transparent 80%);
+}
+
+/* EFEITO GÊNIO: faixas horizontais da janela deformadas em funil (ver abrirComGenio em script.js) */
+.genio {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1002;
+}
+
+.genio-faixa {
+    position: absolute;
+    overflow: hidden;
+    will-change: transform, opacity;
 }
 
 /* SCROLLBAR PERSONALIZADA */

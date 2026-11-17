@@ -125,9 +125,6 @@ function resizeWheelCanvas() {
 }
 
 // SOM
-const sound = document.getElementById('sound');
-sound.volume = 0.3;
-
 let tickAudioCtx = null;
 
 function getTickAudioCtx() {
@@ -139,6 +136,14 @@ function getTickAudioCtx() {
         tickAudioCtx.resume().catch(() => {});
     }
     return tickAudioCtx;
+}
+
+// Tempo (ms) que o áudio leva da hora em que é agendado até sair no alto-falante. O som do tique é
+// disparado com essa antecedência (ver processarGiro), para chegar junto com a imagem da fatia passando.
+function latenciaAudioMs() {
+    const a = tickAudioCtx;
+    const medida = a ? ((a.outputLatency || 0) + (a.baseLatency || 0)) * 1000 : 0;
+    return Math.min(120, Math.max(30, medida || 50));   // sem medida (ex.: Safari): 50 ms
 }
 
 function playTick(delaySeconds = 0) {
@@ -179,6 +184,134 @@ function playTicks(count) {
     }
 }
 
+// Sorteio: o som de ser "sugado" para fora da Matrix pelo telefone.
+// Sucção que acelera (ruído filtrado subindo + tom com vibrato digital) e um impacto grave e seco
+// exatamente quando o nome termina de ser decodificado (0,9 s, igual a decodificarTexto).
+function tocarSaidaDaMatrix() {
+    try {
+        const a = getTickAudioCtx();
+        const t0 = a.currentTime + 0.02;
+        const succao = 0.9;
+        const ti = t0 + succao;                       // instante do impacto
+
+        const mestre = a.createGain();
+        mestre.gain.value = 0.35;
+        mestre.connect(a.destination);
+
+        const ruidoBuffer = (seg) => {
+            const buf = a.createBuffer(1, Math.floor(a.sampleRate * seg), a.sampleRate);
+            const d = buf.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            return buf;
+        };
+
+        // 1) vento da sucção: ruído filtrado cujo centro sobe cada vez mais rápido
+        const vento = a.createBufferSource();
+        vento.buffer = ruidoBuffer(succao + 0.1);
+        const passaFaixa = a.createBiquadFilter();
+        passaFaixa.type = 'bandpass';
+        passaFaixa.Q.value = 2.5;
+        passaFaixa.frequency.setValueAtTime(180, t0);
+        passaFaixa.frequency.exponentialRampToValueAtTime(4200, ti);
+        const ventoGanho = a.createGain();
+        ventoGanho.gain.setValueAtTime(0.04, t0);
+        ventoGanho.gain.exponentialRampToValueAtTime(0.5, ti - 0.05);
+        ventoGanho.gain.exponentialRampToValueAtTime(0.001, ti + 0.03);
+        vento.connect(passaFaixa);
+        passaFaixa.connect(ventoGanho);
+        ventoGanho.connect(mestre);
+        vento.start(t0);
+        vento.stop(ti + 0.05);
+
+        // 2) a "linha" sendo puxada: tom que sobe com vibrato digital
+        const tom = a.createOscillator();
+        tom.type = 'sawtooth';
+        tom.frequency.setValueAtTime(120, t0);
+        tom.frequency.exponentialRampToValueAtTime(1500, ti);
+        const vibrato = a.createOscillator();
+        const vibratoGanho = a.createGain();
+        vibrato.frequency.value = 14;
+        vibratoGanho.gain.value = 40;                 // Hz de desvio
+        vibrato.connect(vibratoGanho);
+        vibratoGanho.connect(tom.frequency);
+        const tomFiltro = a.createBiquadFilter();
+        tomFiltro.type = 'lowpass';
+        tomFiltro.frequency.value = 1800;
+        const tomGanho = a.createGain();
+        tomGanho.gain.setValueAtTime(0.01, t0);
+        tomGanho.gain.exponentialRampToValueAtTime(0.12, ti - 0.08);
+        tomGanho.gain.exponentialRampToValueAtTime(0.001, ti + 0.02);
+        tom.connect(tomFiltro);
+        tomFiltro.connect(tomGanho);
+        tomGanho.connect(mestre);
+        tom.start(t0);
+        vibrato.start(t0);
+        tom.stop(ti + 0.03);
+        vibrato.stop(ti + 0.03);
+
+        // 3) impacto: pancada grave quando o nome fecha
+        const pancada = a.createOscillator();
+        pancada.type = 'sine';
+        pancada.frequency.setValueAtTime(140, ti);
+        pancada.frequency.exponentialRampToValueAtTime(38, ti + 0.3);
+        const pancadaGanho = a.createGain();
+        pancadaGanho.gain.setValueAtTime(0.7, ti);
+        pancadaGanho.gain.exponentialRampToValueAtTime(0.001, ti + 0.34);
+        pancada.connect(pancadaGanho);
+        pancadaGanho.connect(mestre);
+        pancada.start(ti);
+        pancada.stop(ti + 0.35);
+
+        // clique seco no ataque
+        const clique = a.createBufferSource();
+        clique.buffer = ruidoBuffer(0.03);
+        const cliqueFiltro = a.createBiquadFilter();
+        cliqueFiltro.type = 'highpass';
+        cliqueFiltro.frequency.value = 1500;
+        const cliqueGanho = a.createGain();
+        cliqueGanho.gain.setValueAtTime(0.5, ti);
+        cliqueGanho.gain.exponentialRampToValueAtTime(0.001, ti + 0.03);
+        clique.connect(cliqueFiltro);
+        cliqueFiltro.connect(cliqueGanho);
+        cliqueGanho.connect(mestre);
+        clique.start(ti);
+
+        // 4) "zip" descendente logo depois: o que foi sugado se afastando
+        const zip = a.createOscillator();
+        zip.type = 'sawtooth';
+        zip.frequency.setValueAtTime(3000, ti + 0.02);
+        zip.frequency.exponentialRampToValueAtTime(200, ti + 0.22);
+        const zipGanho = a.createGain();
+        zipGanho.gain.setValueAtTime(0.001, ti + 0.02);
+        zipGanho.gain.exponentialRampToValueAtTime(0.08, ti + 0.04);
+        zipGanho.gain.exponentialRampToValueAtTime(0.001, ti + 0.24);
+        zip.connect(zipGanho);
+        zipGanho.connect(mestre);
+        zip.start(ti + 0.02);
+        zip.stop(ti + 0.25);
+    } catch (e) { /* áudio ainda não liberado pelo navegador: segue sem som */ }
+}
+
+// Subida do foguete: "zap" de laser (dente-de-serra descendente, curto). Cada disparo varia
+// um pouco o tom, para uma salva de foguetes não soar repetida.
+function tocarLaserFoguete() {
+    try {
+        const a = getTickAudioCtx();
+        const t = a.currentTime;
+        const osc = a.createOscillator();
+        const ganho = a.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1400 * (0.93 + Math.random() * 0.14), t);
+        osc.frequency.exponentialRampToValueAtTime(120, t + 0.18);
+        ganho.gain.setValueAtTime(0.05, t);
+        ganho.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        osc.connect(ganho);
+        ganho.connect(a.destination);
+        osc.start(t);
+        osc.stop(t + 0.2);
+    } catch (e) { /* áudio ainda não liberado pelo navegador: segue sem som */ }
+}
+
 function tocarAudio(el, volume) {
     el.volume = volume;
     el.currentTime = 0;
@@ -192,7 +325,7 @@ function liberarAudio() {
     if (audioLiberado) return;
     audioLiberado = true;
     getTickAudioCtx();
-    [sound, document.getElementById('rocketSound'), document.getElementById('explosionSound')].forEach(a => {
+    [document.getElementById('explosionSound')].forEach(a => {
         a.muted = true;
         a.play().then(() => {
             a.pause();
@@ -234,7 +367,8 @@ let configFoguetes = 5;
 let configDuracao = 10000;
 const timerPadrao = () => ({
     mostrar: true, rodando: false, base: 0, desde: 0,
-    pessoa: { nome: '', rodando: false, base: 0, desde: 0 }   // quem está falando agora
+    pessoa: { nome: '', rodando: false, base: 0, desde: 0 },   // quem está falando agora
+    historico: []                                              // quem já falou: [{ nome, segundos }]
 });
 let timerEstado = timerPadrao();
 
@@ -348,7 +482,12 @@ window.aplicarEstadoRemoto = function(estado) {
     repouso = novo.repouso || { angulo: 0, desde: agora() };
     configFoguetes = novo.foguetes || 5;
     const t = novo.timer || {};
-    timerEstado = { ...timerPadrao(), ...t, pessoa: { ...timerPadrao().pessoa, ...(t.pessoa || {}) } };
+    timerEstado = {
+        ...timerPadrao(),
+        ...t,
+        pessoa: { ...timerPadrao().pessoa, ...(t.pessoa || {}) },
+        historico: (Array.isArray(t.historico) ? t.historico : Object.values(t.historico || {})).filter(Boolean)
+    };
     if (mudou) createSparkles();
     if (estadoRemotoRecebido && rodandoAntes !== timerEstado.rodando) pressionarBotao(document.getElementById('timerToggle'));
     estadoRemotoRecebido = true;
@@ -608,7 +747,10 @@ window.girar = function() {
 
     liberarAudio();
     startTimer();
-    timerEstado.pessoa = timerPadrao().pessoa;   // a fala anterior termina ao girar
+    if (timerEstado.pessoa.nome) {   // a fala anterior termina ao girar: o tempo dela fica registrado na lista
+        timerEstado.historico.push({ nome: timerEstado.pessoa.nome, segundos: segundosDe(timerEstado.pessoa, agora()) });
+    }
+    timerEstado.pessoa = timerPadrao().pessoa;
 
     const now = agora();
     const indice = Math.floor(Math.random() * entries.length);
@@ -643,17 +785,22 @@ function processarGiro(now) {
     if (giro.id === giroConcluidoId) return;
 
     if (now >= giro.startTime) {
+        // O ângulo é uma função conhecida do tempo, então dá para saber onde a roleta estará daqui a
+        // `latencia` ms: o tique é disparado antes do cruzamento e o áudio chega junto com a imagem.
+        const latencia = latenciaAudioMs();
+        const anguloFuturo = anguloEm(now + latencia);
+
         if (giroEfeitosId !== giro.id) {
             giroEfeitosId = giro.id;
-            lastTickAngle = startAngle;
+            lastTickAngle = anguloEm(giro.startTime);   // não perde os cruzamentos dos primeiros ms do giro
             startHackingEffect();
         }
 
-        const crossedSlices = Math.floor((startAngle + Math.PI / 2) / arc) - Math.floor((lastTickAngle + Math.PI / 2) / arc);
+        const crossedSlices = Math.floor((anguloFuturo + Math.PI / 2) / arc) - Math.floor((lastTickAngle + Math.PI / 2) / arc);
         if (crossedSlices !== 0) {
             playTicks(Math.abs(crossedSlices));
-            flashPointer();
-            lastTickAngle = startAngle;
+            setTimeout(flashPointer, latencia);   // o ponteiro pisca quando a fatia realmente passa
+            lastTickAngle = anguloFuturo;
         }
     }
 
@@ -701,7 +848,17 @@ function confirmarVencedor() {
 
 function esconderModalVencedor() {
     vencedorId = null;
-    document.getElementById('modal').style.display = 'none';
+    if (modalFechando) return;
+    modalAnimId++;
+    removerGenio();
+    const modalEl = document.getElementById('modal');
+    const conteudo = document.getElementById('modalContent');
+    conteudo.style.visibility = '';
+    if (reduzMovimento || getComputedStyle(modalEl).display === 'none') {
+        modalEl.style.display = 'none';
+        return;
+    }
+    escalaFechar(modalEl, conteudo);
 }
 
 function mostrarVencedor(entry, silencioso) {
@@ -728,12 +885,18 @@ function mostrarVencedor(entry, silencioso) {
         return;
     }
 
-    decodificarTexto(strong, entry.name, 900, () => vencedorId === entry.id);
-    flashTela();
-    tremerRoleta();
-    sound.currentTime = 1;
-    sound.volume = 0.3;
-    sound.play().catch(() => {});
+    // O nome já ocupa o seu lugar (invisível) para a janela não crescer depois; ele só começa a ser
+    // escrito quando o efeito Gênio termina, junto com o impacto do som, o clarão e o tremor.
+    strong.textContent = entry.name;
+    strong.style.visibility = 'hidden';
+    abrirComGenio(() => {
+        if (vencedorId !== entry.id) return;
+        strong.style.visibility = '';
+        decodificarTexto(strong, entry.name, 700, () => vencedorId === entry.id);
+        flashTela();
+        tremerRoleta();
+    });
+    tocarSaidaDaMatrix();
     fireworks();
 }
 
@@ -790,7 +953,7 @@ function launchRocket(x, y, peakY, colors) {
         swayDir: Math.random() < 0.5 ? -1 : 1
     };
 
-    tocarAudio(document.getElementById('rocketSound'), 0.1);
+    tocarLaserFoguete();
 
     const rocketInterval = setInterval(() => {
         if (!rocket.exploded) {
@@ -1178,8 +1341,8 @@ const timerBoxEl = document.getElementById('timerBox');
 const timerGeralEl = document.getElementById('speechTimer');
 const timerBotaoEl = document.getElementById('timerToggle');
 const pessoaBoxEl = document.getElementById('personTimer');
-const pessoaNomeEl = document.getElementById('personName');
-const pessoaTempoEl = document.getElementById('personTime');
+let pessoaAssinatura = '';
+let pessoaTempoAtualEl = null;   // <span> do tempo de quem está falando agora
 
 // Só mexe no DOM quando o valor muda
 function definirTexto(el, texto) {
@@ -1189,16 +1352,40 @@ function definirDisplay(el, valor) {
     if (el.style.display !== valor) el.style.display = valor;
 }
 
+function reconstruirListaPessoas() {
+    const linhas = timerEstado.historico.map(h => ({ nome: h.nome, tempo: formatarTempo(h.segundos), atual: false }));
+    if (timerEstado.pessoa.nome) linhas.push({ nome: timerEstado.pessoa.nome, tempo: '00:00', atual: true });
+
+    pessoaTempoAtualEl = null;
+    pessoaBoxEl.replaceChildren(...linhas.map((l) => {
+        const linha = document.createElement('div');
+        linha.className = 'pessoa-linha' + (l.atual ? ' atual' : '');
+        const nome = document.createElement('span');
+        nome.className = 'nome';
+        nome.textContent = l.nome;
+        const tempo = document.createElement('span');
+        tempo.className = 'tempo';
+        tempo.textContent = l.tempo;
+        linha.append(nome, tempo);
+        if (l.atual) pessoaTempoAtualEl = tempo;
+        return linha;
+    }));
+    definirDisplay(pessoaBoxEl, linhas.length ? 'flex' : 'none');
+    pessoaBoxEl.scrollTop = pessoaBoxEl.scrollHeight;   // acompanha a pessoa mais recente
+}
+
 function atualizarTimerUI(now) {
     definirDisplay(timerBoxEl, timerEstado.mostrar ? 'flex' : 'none');
     definirTexto(timerGeralEl, formatarTempo(segundosDe(timerEstado, now)));
 
+    // lista: só é reconstruída quando muda (nova pessoa ou tempo fechado); o tempo de quem fala só atualiza o texto
     const p = timerEstado.pessoa;
-    definirDisplay(pessoaBoxEl, p.nome ? 'flex' : 'none');
-    if (p.nome) {
-        definirTexto(pessoaNomeEl, p.nome);
-        definirTexto(pessoaTempoEl, formatarTempo(segundosDe(p, now)));
+    const assinatura = timerEstado.historico.map(h => h.nome + '|' + h.segundos).join(';') + '#' + p.nome;
+    if (assinatura !== pessoaAssinatura) {
+        pessoaAssinatura = assinatura;
+        reconstruirListaPessoas();
     }
+    if (pessoaTempoAtualEl) definirTexto(pessoaTempoAtualEl, formatarTempo(segundosDe(p, now)));
 
     const rotulo = timerEstado.rodando ? '⏸ Pausar' : (timerEstado.base > 0 ? '▶ Continuar' : '▶ Iniciar');
     definirTexto(timerBotaoEl, rotulo);
@@ -1287,8 +1474,10 @@ function flashTela() {
 
 // nome sorteado "decodificando": caracteres aleatórios que se fixam da esquerda para a direita
 function decodificarTexto(el, final, ms, aindaValido) {
+    const alvos = Array.isArray(el) ? el : [el];
+    const definir = (texto) => alvos.forEach((a) => { a.textContent = texto; });
     if (reduzMovimento || !final) {
-        el.textContent = final;
+        definir(final);
         return;
     }
     const simbolos = '01#$%&@*+=<>/\\|?ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -1301,9 +1490,9 @@ function decodificarTexto(el, final, ms, aindaValido) {
         for (let i = 0; i < final.length; i++) {
             t += (i < fixas || final[i] === ' ') ? final[i] : simbolos[Math.floor(Math.random() * simbolos.length)];
         }
-        el.textContent = t;
+        definir(t);
         if (p < 1) setTimeout(passo, 35);
-        else el.textContent = final;
+        else definir(final);
     })();
 }
 
@@ -1334,6 +1523,131 @@ function prepararModoEspectador() {
 }
 if (window.isViewer) prepararModoEspectador();
 
+// JANELA DO SORTEADO — como as animações de minimizar do macOS:
+//  • abre com o efeito Gênio: a janela é fatiada em faixas horizontais que saem de um ponto (o ponteiro
+//    da roleta; em telas estreitas, o centro da borda de baixo, como o Dock) e se deformam em funil
+//    até assumir a forma final;
+//  • fecha com o efeito Escala: encolhe de volta para o mesmo ponto.
+let modalAnimId = 0;
+let modalFechando = false;
+const limitar01 = (v) => Math.min(1, Math.max(0, v));
+const suave = (p) => p * p * (3 - 2 * p);
+
+function origemGenio(m) {
+    const p = document.getElementById('pointer').getBoundingClientRect();
+    const px = p.left + p.width / 2;
+    const py = p.top + p.height / 2;
+    if (py < m.top - 10) return { x: px, y: py, acima: true };
+    return { x: window.innerWidth / 2, y: window.innerHeight + 10, acima: false };
+}
+
+function removerGenio() {
+    const camada = document.getElementById('genio');
+    if (camada) camada.remove();
+}
+
+// aoTerminar: chamado quando a janela termina de abrir (ou na hora, se o movimento está reduzido)
+function abrirComGenio(aoTerminar) {
+    const modalEl = document.getElementById('modal');
+    const alvo = document.getElementById('modalContent');
+    modalEl.getAnimations().forEach((a) => a.cancel());
+    alvo.getAnimations().forEach((a) => a.cancel());
+    modalFechando = false;
+    alvo.style.visibility = '';
+    removerGenio();
+    if (reduzMovimento) {
+        if (aoTerminar) aoTerminar();
+        return;
+    }
+
+    const id = ++modalAnimId;
+    const m = alvo.getBoundingClientRect();
+    const o = origemGenio(m);
+    const N = 44;           // faixas (quanto mais, mais suave a borda do funil)
+    const K = 20;           // quadros-chave por faixa
+    const D = 900;          // ms
+    const hs = m.height / N;
+    const cxN = m.left + m.width / 2;
+
+    modalEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out' });
+    alvo.style.visibility = 'hidden';
+
+    const camada = document.createElement('div');
+    camada.id = 'genio';
+    camada.className = 'genio';
+    document.body.appendChild(camada);
+
+    const faixas = [];
+    for (let i = 0; i < N; i++) {
+        const f = document.createElement('div');
+        f.className = 'genio-faixa';
+        f.style.cssText = `left:${m.left}px; top:${m.top + i * hs}px; width:${m.width}px; height:${hs + 0.6}px`;
+        const copia = alvo.cloneNode(true);
+        copia.style.cssText = `position:absolute; left:0; top:${-i * hs}px; width:${m.width}px; height:${m.height}px; margin:0; max-width:none; visibility:visible`;
+        f.appendChild(copia);
+        camada.appendChild(f);
+        faixas.push(f);
+    }
+
+    // proximidade 0 = faixa colada na origem. A ponta distante da janela se forma primeiro e a parte
+    // colada na origem fica fina (o "pescoço" do funil) e chega por último, como no efeito do macOS.
+    const proximidade = (i) => (o.acima ? i : N - 1 - i) / (N - 1);
+    const quadros = faixas.map(() => []);
+
+    for (let k = 0; k < K; k++) {
+        const p = k / (K - 1);
+        const ys = [];
+        const xs = [];
+        const sxs = [];
+        for (let i = 0; i < N; i++) {
+            const q = suave(limitar01((p - 0.35 * (1 - proximidade(i))) / 0.65));
+            ys.push(lerp(o.y, m.top + (i + 0.5) * hs, q));
+            xs.push(lerp(o.x, cxN, q));
+            sxs.push(lerp(0.03, 1, Math.pow(q, 2.2)));
+        }
+        for (let i = 0; i < N; i++) {
+            const vizinho = i < N - 1 ? ys[i + 1] - ys[i] : ys[i] - ys[i - 1];
+            const sy = Math.max(0.15, Math.abs(vizinho) / hs);
+            quadros[i].push({
+                transform: `translate(${(xs[i] - cxN).toFixed(1)}px, ${(ys[i] - (m.top + (i + 0.5) * hs)).toFixed(1)}px) scale(${sxs[i].toFixed(3)}, ${sy.toFixed(3)})`,
+                opacity: Math.min(1, p / 0.12),
+                offset: p
+            });
+        }
+    }
+
+    const anims = faixas.map((f, i) => f.animate(quadros[i], { duration: D, easing: 'linear', fill: 'both' }));
+    anims[0].onfinish = () => {
+        camada.remove();
+        if (id !== modalAnimId) return;
+        alvo.style.visibility = '';
+        alvo.animate([{ opacity: 0.6 }, { opacity: 1 }], { duration: 120 });   // o brilho da borda, que as faixas cortavam
+        if (aoTerminar) aoTerminar();
+    };
+}
+
+// efeito Escala: a janela encolhe de volta para o ponto de origem
+function escalaFechar(modalEl, conteudo) {
+    const m = conteudo.getBoundingClientRect();
+    const o = origemGenio(m);
+    const dx = o.x - (m.left + m.width / 2);
+    const dy = o.y - (m.top + m.height / 2);
+    const id = ++modalAnimId;
+    modalFechando = true;
+
+    modalEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-in', fill: 'forwards' });
+    conteudo.animate([
+        { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.05)`, opacity: 0 }
+    ], { duration: 260, easing: 'ease-in', fill: 'forwards' }).onfinish = () => {
+        if (id !== modalAnimId) return;
+        modalFechando = false;
+        modalEl.getAnimations().forEach((a) => a.cancel());
+        conteudo.getAnimations().forEach((a) => a.cancel());
+        modalEl.style.display = 'none';
+    };
+}
+
 window.onload = () => {
     if (window.isViewer) {
         // Não limpa o estado aqui: o banco pode já ter respondido antes do load terminar
@@ -1357,13 +1671,14 @@ if (window.isViewer === false) {
 }
 
 // NEO VOADOR
-// A cada 10–30 s (sorteado) ele cruza a tela voando (passagem direta, mergulho/subida ou parada no ar
+// De 30 s a 2,5 min (sorteado a cada vez) ele cruza a tela voando (passagem direta, mergulho/subida ou parada no ar
 // e arrancada). É só decoração: cada cliente sorteia o próprio trajeto.
 const neoEl = document.getElementById('bonecoVoador');
 let neoEmVoo = false;
+let neoAnimAtual = null;
 // Intervalo (ms) entre uma aparição e a próxima: sorteado a cada vez
-const NEO_INTERVALO_MIN = 10000;
-const NEO_INTERVALO_MAX = 30000;
+const NEO_INTERVALO_MIN = 30000;
+const NEO_INTERVALO_MAX = 150000;
 const aleatorio = (min, max) => min + Math.random() * (max - min);
 const lerp = (a, b, p) => a + (b - a) * p;
 const easeOut = (p) => 1 - Math.pow(1 - p, 3);
@@ -1443,11 +1758,12 @@ function voarNeo() {
 
     neoEmVoo = true;
     const anim = neoEl.animate(quadros, { duration: duracao, easing: 'linear' });
-    anim.onfinish = anim.oncancel = () => { neoEmVoo = false; };
+    neoAnimAtual = anim;
+    anim.onfinish = anim.oncancel = () => { if (neoAnimAtual === anim) neoEmVoo = false; };
 }
 
 if (neoEl.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    agendarNeo(aleatorio(3000, 8000));
+    agendarNeo(aleatorio(20000, 60000));
 }
 
 requestAnimationFrame(frame);

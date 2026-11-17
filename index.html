@@ -31,8 +31,6 @@
   <div id="hackingContainer" aria-hidden="true"></div>
   <div id="efeitos" aria-hidden="true"></div>
 
-  <audio id="sound" preload="auto" src="https://cdn.pixabay.com/audio/2023/04/13/audio_f4865f179c.mp3"></audio>
-  <audio id="rocketSound" preload="auto" src="https://cdn.pixabay.com/audio/2025/05/03/audio_5a28c4570f.mp3"></audio>
   <audio id="explosionSound" preload="auto" src="https://cdn.pixabay.com/audio/2025/05/31/audio_be1e4daf3e.mp3"></audio>
 
   <div class="container">
@@ -50,37 +48,36 @@
       <!-- BONEQUINHO (palitinho em SVG) -->
       <div class="boneco" id="boneco" aria-hidden="true">
         <svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
+          <!-- braço de trás -->
+          <line x1="50" y1="62" x2="36" y2="96" stroke="#00ff88" stroke-width="11" stroke-linecap="round"/>
+          <line x1="50" y1="62" x2="36" y2="96" stroke="#0a0a0a" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="34" cy="101" r="5.5" fill="#d2ad8a"/>
+          <!-- sobretudo: abas esvoaçando para trás -->
+          <path d="M46 54 C28 68 14 98 8 146 L22 134 L28 152 L40 132 L48 122 Z" fill="#0a0a0a" stroke="#00ff88" stroke-width="1.2" stroke-linejoin="round"/>
+          <!-- perna de trás (esticada, impulsionando) -->
           <g id="perna-esquerda">
-            <line x1="44" y1="118" x2="24" y2="170" stroke="#00ff88" stroke-width="11.5" stroke-linecap="round"/>
-            <line x1="44" y1="118" x2="24" y2="170" stroke="#0a0a0a" stroke-width="9.5" stroke-linecap="round"/>
-            <ellipse cx="17" cy="176" rx="11" ry="5.5" fill="#000" stroke="#00ff88" stroke-width="1.4"/>
+            <polyline points="48,120 38,148 27,168" fill="none" stroke="#0a0a0a" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+            <ellipse cx="21" cy="172" rx="11" ry="5.5" transform="rotate(-25 21 172)" fill="#000" stroke="#00ff88" stroke-width="1.4"/>
           </g>
+          <!-- tronco -->
+          <path d="M44 54 Q62 46 76 56 L72 122 Q58 130 44 122 Z" fill="#0a0a0a" stroke="#00ff88" stroke-width="1.2" stroke-linejoin="round"/>
+          <path d="M60 50 L66 68 L77 56 Z" fill="#0a0a0a" stroke="#00ff88" stroke-width="1" stroke-linejoin="round"/>
+          <!-- perna da frente (dobrada, firme no chão) -->
           <g id="perna-direita">
-            <line x1="56" y1="118" x2="76" y2="170" stroke="#00ff88" stroke-width="11.5" stroke-linecap="round"/>
-            <line x1="56" y1="118" x2="76" y2="170" stroke="#0a0a0a" stroke-width="9.5" stroke-linecap="round"/>
-            <ellipse cx="83" cy="176" rx="11" ry="5.5" fill="#000" stroke="#00ff88" stroke-width="1.4"/>
+            <polyline points="54,120 68,146 66,168" fill="none" stroke="#0a0a0a" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+            <ellipse cx="73" cy="175" rx="11" ry="5.5" fill="#000" stroke="#00ff88" stroke-width="1.4"/>
           </g>
-          <!-- sobretudo: duas abas abertas na frente, com a camisa escura entre elas -->
-          <path d="M45 52 L55 52 L54 140 L46 140 Z" fill="#1c1c1c"/>
-          <path d="M30 56 Q38 50 47 52 L46 140 L14 140 Q22 112 25 92 Z" fill="#0a0a0a" stroke="#00ff88" stroke-width="1.2" stroke-linejoin="round"/>
-          <path d="M70 56 Q62 50 53 52 L54 140 L86 140 Q78 112 75 92 Z" fill="#0a0a0a" stroke="#00ff88" stroke-width="1.2" stroke-linejoin="round"/>
-          <!-- gola e lapelas -->
-          <path d="M34 53 L47 52 L45 72 Z" fill="#0a0a0a" stroke="#00ff88" stroke-width="1" stroke-linejoin="round"/>
-          <path d="M66 53 L53 52 L55 72 Z" fill="#0a0a0a" stroke="#00ff88" stroke-width="1" stroke-linejoin="round"/>
-          <!-- braço esquerdo (manga contornada + mão) -->
-          <line x1="32" y1="60" x2="15" y2="98" stroke="#00ff88" stroke-width="11.5" stroke-linecap="round"/>
-          <line x1="32" y1="60" x2="15" y2="98" stroke="#0a0a0a" stroke-width="9.5" stroke-linecap="round"/>
-          <circle cx="13" cy="103" r="5.5" fill="#d2ad8a"/>
-          <!-- braço direito: é o que empurra a roleta e se ergue na decolagem -->
+          <!-- braço da frente: empurra a roleta e se ergue na decolagem -->
           <g id="braco">
-            <line x1="68" y1="60" x2="85" y2="96" stroke="#00ff88" stroke-width="11.5" stroke-linecap="round"/>
-            <line x1="68" y1="60" x2="85" y2="96" stroke="#0a0a0a" stroke-width="9.5" stroke-linecap="round"/>
-            <circle cx="87" cy="101" r="5.5" fill="#d2ad8a"/>
+            <line x1="66" y1="62" x2="94" y2="80" stroke="#00ff88" stroke-width="11" stroke-linecap="round"/>
+            <line x1="66" y1="62" x2="94" y2="80" stroke="#0a0a0a" stroke-width="9" stroke-linecap="round"/>
+            <circle cx="98" cy="82" r="5.5" fill="#d2ad8a"/>
           </g>
-          <circle id="cabeca" cx="50" cy="30" r="17" fill="#d2ad8a"/>
-          <path d="M33 28 Q50 4 67 28 Q50 15 33 28 Z" fill="#111"/>
-          <rect x="35" y="26" width="30" height="9" rx="3" fill="#000"/>
-          <line x1="39" y1="29" x2="47" y2="29" stroke="#00ff88" stroke-width="1.6" stroke-linecap="round"/>
+          <!-- cabeça -->
+          <circle id="cabeca" cx="60" cy="30" r="16" fill="#d2ad8a"/>
+          <path d="M44 28 Q46 8 68 13 Q58 17 56 29 Z" fill="#111"/>
+          <rect x="58" y="26" width="19" height="8" rx="3" fill="#000"/>
+          <line x1="62" y1="29" x2="70" y2="29" stroke="#00ff88" stroke-width="1.6" stroke-linecap="round"/>
         </svg>
       </div>
       <div id="pointer"></div>
@@ -121,10 +118,7 @@
       <span id="speechTimer">00:00</span>
       <button id="timerToggle" class="timer-btn" type="button" title="Iniciar/pausar o timer">▶ Iniciar</button>
     </div>
-    <div id="personTimer" style="display: none;">
-      <span id="personName"></span>
-      <span id="personTime">00:00</span>
-    </div>
+    <div id="personTimer" style="display: none;"></div>
   </div>
 
   <!-- Modal de Configurações: janela de terminal com chuva de letras da Matrix -->

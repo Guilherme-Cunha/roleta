@@ -9,7 +9,7 @@ const agora = () => Date.now() + offsetServidor;
 
 // FUNDO "MATRIX"
 const canvasBg = document.getElementById("matrixCanvas");
-const ctxBg = canvasBg.getContext("2d");
+const ctxBg = canvasBg.getContext("2d", { alpha: false });
 
 let allParticles = [];
 let fireworksAnimation = null;
@@ -232,7 +232,11 @@ let ultimoDesenho = 0;
 
 let configFoguetes = 5;
 let configDuracao = 10000;
-let timerEstado = { mostrar: true, rodando: false, base: 0, desde: 0 };
+const timerPadrao = () => ({
+    mostrar: true, rodando: false, base: 0, desde: 0,
+    pessoa: { nome: '', rodando: false, base: 0, desde: 0 }   // quem está falando agora
+});
+let timerEstado = timerPadrao();
 
 resizeWheelCanvas();
 window.addEventListener('resize', resizeWheelCanvas);
@@ -256,13 +260,19 @@ function generateDistinctColors(n) {
 function atualizarBotao() {
     const spinBtn = document.getElementById('spinBtn');
     const namesInput = document.getElementById('names');
+    const timerBtn = document.getElementById('timerToggle');
     const emGiro = !!giro;
 
     if (spinBtn) {
-        spinBtn.style.display = (window.isViewer || entries.length === 0 || usandoListaPadrao) ? 'none' : 'block';
+        spinBtn.style.display = (entries.length === 0 || usandoListaPadrao) ? 'none' : 'block';
         spinBtn.disabled = emGiro;
+        spinBtn.classList.toggle('somente-leitura', !!window.isViewer);
     }
-    if (namesInput) namesInput.disabled = emGiro;
+    if (timerBtn) timerBtn.classList.toggle('somente-leitura', !!window.isViewer);
+    if (namesInput) {
+        namesInput.readOnly = !!window.isViewer || emGiro;
+        namesInput.classList.toggle('bloqueado', emGiro);
+    }
 }
 
 // Estado que o anfitrião grava no banco
@@ -272,7 +282,9 @@ window.obterEstado = function() {
         repouso: { angulo: repouso.angulo, desde: repouso.desde },
         giro: giro ? { ...giro } : null,
         foguetes: configFoguetes,
-        timer: { ...timerEstado }
+        timer: JSON.parse(JSON.stringify(timerEstado)),
+        nomes: textoNomes,
+        padrao: usandoListaPadrao
     };
 };
 
@@ -284,11 +296,13 @@ function publicar(opcoes) {
 
 // Lista usada quando o anfitrião ainda não informou nenhum nome
 let usandoListaPadrao = true;   // a lista padrão é só demonstração: não pode ser sorteada
+let textoNomes = '';             // conteúdo do campo de nomes (espelhado, somente leitura, para os espectadores)
 const NOMES_PADRAO = ["Aeronauta Barata", "Agrícola Beterraba Areia", "Agrícola da Terra Fonseca", "Alce Barbuda", "Amado Amoroso", "Amável Pinto", "Ravi", "Helena", "Igor", "Juliana"];
 
 // Anfitrião: nomes digitados (vazio = lista padrão)
 window.setupWheel = function(texto = '') {
     if (window.isViewer || giro) return;
+    textoNomes = texto;
 
     const digitados = texto
         .split(/[\n,]+/)
@@ -318,6 +332,12 @@ window.setupWheel = function(texto = '') {
 window.aplicarEstadoRemoto = function(estado) {
     if (!window.isViewer) return;
     const novo = estado || {};
+    const rodandoAntes = timerEstado.rodando;
+
+    usandoListaPadrao = novo.padrao !== false;   // sem estado = lista de demonstração
+    const campoNomes = document.getElementById('names');
+    const texto = novo.nomes || '';
+    if (campoNomes && campoNomes.value !== texto) campoNomes.value = texto;
 
     const lista = Array.isArray(novo.entries) ? novo.entries : Object.values(novo.entries || {});
     const novas = lista.filter(Boolean);
@@ -327,8 +347,11 @@ window.aplicarEstadoRemoto = function(estado) {
     arc = entries.length ? Math.PI * 2 / entries.length : 0;
     repouso = novo.repouso || { angulo: 0, desde: agora() };
     configFoguetes = novo.foguetes || 5;
-    timerEstado = { mostrar: true, rodando: false, base: 0, desde: 0, ...(novo.timer || {}) };
+    const t = novo.timer || {};
+    timerEstado = { ...timerPadrao(), ...t, pessoa: { ...timerPadrao().pessoa, ...(t.pessoa || {}) } };
     if (mudou) createSparkles();
+    if (estadoRemotoRecebido && rodandoAntes !== timerEstado.rodando) pressionarBotao(document.getElementById('timerToggle'));
+    estadoRemotoRecebido = true;
 
     const novoGiro = novo.giro || null;
     if (!novoGiro) {
@@ -351,11 +374,13 @@ window.aplicarEstadoRemoto = function(estado) {
             if (entry) mostrarVencedor(entry, true);
         } else {
             iniciarGiroLocal();
+            if (agora() < giro.startTime + 400) pressionarBotao(document.getElementById('spinBtn'));   // espelha o clique do anfitrião
         }
     }
 
     atualizarBotao();
 };
+let estadoRemotoRecebido = false;
 
 // A roleta (fatias + nomes) é desenhada uma vez num canvas de cache; a cada quadro
 // só é rotacionada via drawImage. O brilho vem do drop-shadow em CSS.
@@ -377,7 +402,7 @@ function montarRodaCache() {
     const center = wheelSize / 2;
     const radius = center - 4;
     const fontSize = Math.max(10, Math.round(wheelSize / 33));
-    c.font = `bold ${fontSize}px Arial`;
+    c.font = `bold ${fontSize}px "Courier New", monospace`;
 
     for (let i = 0; i < entries.length; i++) {
         const entry = entries[i];
@@ -583,6 +608,7 @@ window.girar = function() {
 
     liberarAudio();
     startTimer();
+    timerEstado.pessoa = timerPadrao().pessoa;   // a fala anterior termina ao girar
 
     const now = agora();
     const indice = Math.floor(Math.random() * entries.length);
@@ -642,6 +668,12 @@ function concluirGiro() {
 
     const entry = entries.find(e => e.id === giro.winnerId);
     if (entry) mostrarVencedor(entry, false);
+
+    // A fala começa no instante em que a roleta parou (mesmo valor para todos, mesmo com a aba em segundo plano)
+    if (entry && !window.isViewer) {
+        iniciarFalaDe(entry.name, giro.startTime + giro.duration);
+        publicar();
+    }
 }
 
 // Anfitrião: botão OK — remove o vencedor da roleta e libera o próximo giro
@@ -658,7 +690,6 @@ function confirmarVencedor() {
 
     esconderModalVencedor();
     if (entries.length === 0) {
-        pauseTimer();
         const namesInput = document.getElementById('names');
         if (namesInput) namesInput.value = '';
         window.setupWheel('');
@@ -680,21 +711,30 @@ function mostrarVencedor(entry, silencioso) {
     winnerEl.classList.remove('glitch');
     void winnerEl.offsetWidth;
     const strong = document.createElement('strong');
-    strong.textContent = entry.name;
     winnerEl.replaceChildren(strong);
     winnerEl.classList.add('glitch');
 
     document.getElementById('modal').style.display = 'flex';
 
+    // o espectador vê o OK, mas não consegue acioná-lo
     const okBtn = document.getElementById('okBtn');
-    if (okBtn) okBtn.style.display = window.isViewer ? 'none' : 'inline-block';
-
-    if (!silencioso) {
-        sound.currentTime = 1;
-        sound.volume = 0.3;
-        sound.play().catch(() => {});
-        fireworks();
+    if (okBtn) {
+        okBtn.style.display = 'inline-block';
+        okBtn.classList.toggle('somente-leitura', !!window.isViewer);
     }
+
+    if (silencioso) {
+        strong.textContent = entry.name;
+        return;
+    }
+
+    decodificarTexto(strong, entry.name, 900, () => vencedorId === entry.id);
+    flashTela();
+    tremerRoleta();
+    sound.currentTime = 1;
+    sound.volume = 0.3;
+    sound.play().catch(() => {});
+    fireworks();
 }
 
 document.getElementById('okBtn').addEventListener('click', confirmarVencedor);
@@ -956,8 +996,50 @@ window.entrarModoEspectador = function() {
     window.isViewer = true;
     document.body.classList.add('viewer');
     giro = null;
+    prepararModoEspectador();
     atualizarBotao();
 };
+
+// CHUVA DE LETRAS da janela de configurações: só anima enquanto ela está aberta
+function criarChuvaMatrix(cnv, fonte = 14) {
+    const c = cnv.getContext('2d', { alpha: false });
+    let gotas = [];
+    let timer = null;
+
+    function ajustar() {
+        const r = cnv.parentElement.getBoundingClientRect();
+        cnv.width = Math.max(1, Math.round(r.width));
+        cnv.height = Math.max(1, Math.round(r.height));
+        gotas = Array.from({ length: Math.floor(cnv.width / fonte) }, () => Math.floor(Math.random() * cnv.height / fonte));
+        c.fillStyle = '#000';
+        c.fillRect(0, 0, cnv.width, cnv.height);
+    }
+
+    function quadro() {
+        c.fillStyle = 'rgba(0, 0, 0, 0.08)';
+        c.fillRect(0, 0, cnv.width, cnv.height);
+        c.fillStyle = '#0F0';
+        c.font = fonte + 'px monospace';
+        for (let i = 0; i < gotas.length; i++) {
+            c.fillText(letters[Math.floor(Math.random() * letters.length)], i * fonte, gotas[i] * fonte);
+            if (gotas[i] * fonte > cnv.height || Math.random() > 0.975) gotas[i] = 0;
+            gotas[i]++;
+        }
+    }
+
+    return {
+        iniciar() {
+            ajustar();
+            if (!timer) timer = setInterval(quadro, 60);
+        },
+        parar() {
+            clearInterval(timer);
+            timer = null;
+        }
+    };
+}
+
+const chuvaConfig = criarChuvaMatrix(document.getElementById('configChuva'));
 
 // MODAL CONFIGURAÇÕES
 const modal = document.getElementById("configModal");
@@ -971,6 +1053,7 @@ if (btnOpen) {
         document.getElementById("spinTime").value = configDuracao / 1000;
         document.getElementById('toggleSpeechTimer').checked = timerEstado.mostrar;
         modal.style.display = "flex";
+        chuvaConfig.iniciar();
     };
 }
 
@@ -985,6 +1068,7 @@ if (btnClose) {
 
         if (isDirty && !confirm("Alterações não salvas, tem certeza que deseja fechar?")) return;
         modal.style.display = "none";
+        chuvaConfig.parar();
     };
 }
 
@@ -1011,6 +1095,7 @@ if (btnSave) {
         publicar();
         showToast("✅ Configurações salvas!", "success");
         modal.style.display = "none";
+        chuvaConfig.parar();
     };
 }
 
@@ -1058,36 +1143,196 @@ window.showToast = showToast;
 // TIMER
 // Faz parte do estado publicado: o valor é derivado do relógio do servidor
 // (base + tempo corrido desde `desde`), então anfitrião e espectadores mostram o mesmo.
-function segundosTimer(now) {
-    const corrido = timerEstado.rodando ? Math.max(0, Math.floor((now - timerEstado.desde) / 1000)) : 0;
-    return timerEstado.base + corrido;
+// Há dois contadores: o geral da reunião e o da pessoa que está falando.
+const segundosDe = (c, now) => c.base + (c.rodando ? Math.max(0, Math.floor((now - c.desde) / 1000)) : 0);
+const formatarTempo = (total) => `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+
+function iniciarContador(c) {
+    if (c.rodando) return;
+    c.rodando = true;
+    c.desde = agora();
+}
+
+function pararContador(c) {
+    if (!c.rodando) return;
+    c.base = segundosDe(c, agora());
+    c.rodando = false;
 }
 
 function startTimer() {
-    if (timerEstado.rodando) return;
-    timerEstado.rodando = true;
-    timerEstado.desde = agora();
+    iniciarContador(timerEstado);
 }
 
 function pauseTimer() {
-    if (!timerEstado.rodando) return;
-    timerEstado.base = segundosTimer(agora());
-    timerEstado.rodando = false;
+    pararContador(timerEstado);
+    pararContador(timerEstado.pessoa);
 }
 
-let timerTextoAtual = '';
-function atualizarTimerUI(now) {
-    const el = document.getElementById('speechTimer');
-    const visivel = timerEstado.mostrar ? 'block' : 'none';
-    if (el.style.display !== visivel) el.style.display = visivel;
+// Quando o nome é sorteado: o geral segue (ou começa) e o da pessoa zera e começa
+function iniciarFalaDe(nome, desde = agora()) {
+    startTimer();
+    timerEstado.pessoa = { nome, rodando: true, base: 0, desde };
+}
 
-    const total = segundosTimer(now);
-    const texto = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-    if (texto !== timerTextoAtual) {
-        timerTextoAtual = texto;
-        el.textContent = texto;
+const timerBoxEl = document.getElementById('timerBox');
+const timerGeralEl = document.getElementById('speechTimer');
+const timerBotaoEl = document.getElementById('timerToggle');
+const pessoaBoxEl = document.getElementById('personTimer');
+const pessoaNomeEl = document.getElementById('personName');
+const pessoaTempoEl = document.getElementById('personTime');
+
+// Só mexe no DOM quando o valor muda
+function definirTexto(el, texto) {
+    if (el.textContent !== texto) el.textContent = texto;
+}
+function definirDisplay(el, valor) {
+    if (el.style.display !== valor) el.style.display = valor;
+}
+
+function atualizarTimerUI(now) {
+    definirDisplay(timerBoxEl, timerEstado.mostrar ? 'flex' : 'none');
+    definirTexto(timerGeralEl, formatarTempo(segundosDe(timerEstado, now)));
+
+    const p = timerEstado.pessoa;
+    definirDisplay(pessoaBoxEl, p.nome ? 'flex' : 'none');
+    if (p.nome) {
+        definirTexto(pessoaNomeEl, p.nome);
+        definirTexto(pessoaTempoEl, formatarTempo(segundosDe(p, now)));
+    }
+
+    const rotulo = timerEstado.rodando ? '⏸ Pausar' : (timerEstado.base > 0 ? '▶ Continuar' : '▶ Iniciar');
+    definirTexto(timerBotaoEl, rotulo);
+}
+
+// Anfitrião: iniciar/pausar (útil quando a reunião começa com recados antes da roleta)
+timerBotaoEl.addEventListener('click', () => {
+    if (window.isViewer) return;
+    if (timerEstado.rodando) {
+        pauseTimer();
+    } else {
+        startTimer();
+        if (timerEstado.pessoa.nome) iniciarContador(timerEstado.pessoa);
+    }
+    publicar();
+});
+
+// EFEITOS: clique, cursor e sorteio (estilo terminal). Valem para anfitrião e espectadores.
+const efeitosEl = document.getElementById('efeitos');
+const reduzMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CARACTERES_FX = '01010101アイウエオカキクケコサシスセソ<>{}[]/\\|=+*#$%&'.split('');
+
+function ondaNoBotao(btn, x, y) {
+    const r = btn.getBoundingClientRect();
+    const d = Math.max(r.width, r.height) * 2;
+    const el = document.createElement('span');
+    el.className = 'ripple';
+    el.style.cssText = `width:${d}px; height:${d}px; left:${x - r.left - d / 2}px; top:${y - r.top - d / 2}px`;
+    btn.appendChild(el);
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+}
+
+// pequena explosão de "código" no ponto clicado
+function explosaoCodigo(x, y, qtd) {
+    if (efeitosEl.childElementCount > 80) return;
+    for (let i = 0; i < qtd; i++) {
+        const el = document.createElement('span');
+        el.className = 'faisca';
+        el.textContent = CARACTERES_FX[Math.floor(Math.random() * CARACTERES_FX.length)];
+        el.style.cssText = `left:${x}px; top:${y}px; font-size:${aleatorio(11, 20)}px`;
+        efeitosEl.appendChild(el);
+
+        const ang = Math.random() * Math.PI * 2;
+        const dist = aleatorio(30, 90);
+        el.animate([
+            { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+            { transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px), calc(-50% + ${Math.sin(ang) * dist + 25}px)) scale(0.4)`, opacity: 0 }
+        ], { duration: aleatorio(450, 800), easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)' }).onfinish = () => el.remove();
     }
 }
+
+// rastro de caracteres atrás do mouse
+let ultimoRastro = 0;
+function criarRastro(x, y) {
+    if (efeitosEl.childElementCount > 80) return;
+    const el = document.createElement('span');
+    el.className = 'rastro';
+    el.textContent = CARACTERES_FX[Math.floor(Math.random() * CARACTERES_FX.length)];
+    el.style.cssText = `left:${x + aleatorio(-6, 6)}px; top:${y + aleatorio(-6, 6)}px`;
+    efeitosEl.appendChild(el);
+    el.animate([
+        { transform: 'translate(-50%, -50%)', opacity: 0.85 },
+        { transform: 'translate(-50%, calc(-50% + 22px))', opacity: 0 }
+    ], { duration: 650, easing: 'ease-out' }).onfinish = () => el.remove();
+}
+
+// Espelha no espectador o "clique" que o anfitrião deu (os botões dele são somente leitura)
+function pressionarBotao(btn) {
+    if (!btn || reduzMovimento) return;
+    btn.classList.remove('pressionado');
+    void btn.offsetWidth;
+    btn.classList.add('pressionado');
+    setTimeout(() => btn.classList.remove('pressionado'), 400);
+    const r = btn.getBoundingClientRect();
+    ondaNoBotao(btn, r.left + r.width / 2, r.top + r.height / 2);
+    explosaoCodigo(r.left + r.width / 2, r.top + r.height / 2, 10);
+}
+
+function flashTela() {
+    if (reduzMovimento) return;
+    const el = document.createElement('div');
+    el.className = 'flash-tela';
+    efeitosEl.appendChild(el);
+    el.animate([{ opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 0 }], { duration: 500, easing: 'ease-out' }).onfinish = () => el.remove();
+}
+
+// nome sorteado "decodificando": caracteres aleatórios que se fixam da esquerda para a direita
+function decodificarTexto(el, final, ms, aindaValido) {
+    if (reduzMovimento || !final) {
+        el.textContent = final;
+        return;
+    }
+    const simbolos = '01#$%&@*+=<>/\\|?ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const inicio = performance.now();
+    (function passo() {
+        if (!aindaValido()) return;
+        const p = Math.min(1, (performance.now() - inicio) / ms);
+        const fixas = Math.floor(final.length * p);
+        let t = '';
+        for (let i = 0; i < final.length; i++) {
+            t += (i < fixas || final[i] === ' ') ? final[i] : simbolos[Math.floor(Math.random() * simbolos.length)];
+        }
+        el.textContent = t;
+        if (p < 1) setTimeout(passo, 35);
+        else el.textContent = final;
+    })();
+}
+
+if (!reduzMovimento) {
+    document.addEventListener('pointerdown', (e) => {
+        const btn = e.target.closest ? e.target.closest('button') : null;
+        const ativo = btn && !btn.disabled && !btn.classList.contains('somente-leitura');
+        if (ativo) ondaNoBotao(btn, e.clientX, e.clientY);
+        explosaoCodigo(e.clientX, e.clientY, ativo ? 12 : 8);
+    });
+
+    document.addEventListener('pointermove', (e) => {
+        if (e.pointerType !== 'mouse') return;
+        const t = performance.now();
+        if (t - ultimoRastro < 45) return;
+        ultimoRastro = t;
+        criarRastro(e.clientX, e.clientY);
+    });
+}
+
+// ESPECTADOR: campo de nomes espelhado (somente leitura) e mensagem de espera
+function prepararModoEspectador() {
+    const campo = document.getElementById('names');
+    if (campo) {
+        campo.placeholder = 'Aguardando o anfitrião informar os nomes...';
+        campo.readOnly = true;
+    }
+}
+if (window.isViewer) prepararModoEspectador();
 
 window.onload = () => {
     if (window.isViewer) {

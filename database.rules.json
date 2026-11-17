@@ -15,7 +15,9 @@
           "$i": {
             "name": { ".validate": "newData.isString() && newData.val().length <= 60" }
           }
-        }
+        },
+        "nomes": { ".validate": "newData.isString() && newData.val().length <= 5000" },
+        "padrao": { ".validate": "newData.isBoolean()" }
       },
       "$outro": {
         ".write": "auth != null && !newData.exists() && newData.parent().child('host/uid').val() === auth.uid"

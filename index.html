@@ -21,9 +21,6 @@
    <meta name="twitter:image" content="https://guilherme-cunha.github.io/roleta/imagens/thumbnail.png" />
    <meta name="twitter:creator" content="@guicunha1188" />
    <title>Roleta de Nomes - Ao Vivo</title>
-   <link rel="preconnect" href="https://fonts.googleapis.com">
-   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
    <link rel="stylesheet" href="style.css">
    <link rel="icon" type="image/png" href="favicon.png">
 </head>
@@ -32,6 +29,7 @@
   <canvas id="fireworksCanvas"></canvas>
   <div class="crt-overlay" aria-hidden="true"></div>
   <div id="hackingContainer" aria-hidden="true"></div>
+  <div id="efeitos" aria-hidden="true"></div>
 
   <audio id="sound" preload="auto" src="https://cdn.pixabay.com/audio/2023/04/13/audio_f4865f179c.mp3"></audio>
   <audio id="rocketSound" preload="auto" src="https://cdn.pixabay.com/audio/2025/05/03/audio_5a28c4570f.mp3"></audio>
@@ -39,7 +37,7 @@
 
   <div class="container">
     <div id="inputArea">
-      <textarea id="names" placeholder="Digite os nomes separados por vírgula ou por enter" spellcheck="false"></textarea>
+      <textarea id="names" placeholder="Digite os nomes separados por vírgula ou por enter" spellcheck="false" maxlength="5000"></textarea>
       <div class="input-actions">
         <button id="openConfig" class="gerar-btn" title="Configure sua roleta.">⚙️</button>
         <button id="shareViewerBtn" class="link-btn" title="Copiar link para espectadores">🔗 Link Espectador</button>
@@ -91,8 +89,9 @@
 
   <div id="modal">
     <div id="modalContent">
+      <div id="winnerLabel">&gt; ACESSO CONCEDIDO</div>
       <div id="winner"></div>
-      <button id="okBtn">OK</button>
+      <button id="okBtn">[ OK ]</button>
     </div>
   </div>
 
@@ -117,26 +116,48 @@
 
   <div id="result"></div>
   <div class="toast-container" id="toastContainer"></div>
-  <div id="speechTimer" style="display: none;">00:00</div>
+  <div id="timerBox" style="display: none;">
+    <div class="timer-linha">
+      <span id="speechTimer">00:00</span>
+      <button id="timerToggle" class="timer-btn" type="button" title="Iniciar/pausar o timer">▶ Iniciar</button>
+    </div>
+    <div id="personTimer" style="display: none;">
+      <span id="personName"></span>
+      <span id="personTime">00:00</span>
+    </div>
+  </div>
 
-  <!-- Modal de Configurações -->
+  <!-- Modal de Configurações: janela de terminal com chuva de letras da Matrix -->
   <div id="configModal" class="modal">
     <div class="modal-content">
-      <span id="closeModal" class="close" title="Fechar">&times;</span>
-      <h2>Configurações</h2>
-      <label for="fireworksCount">Quantidade de foguetes:</label><br>
-      <input type="number" id="fireworksCount" min="1" max="20" value="5"><br><br>
+      <canvas id="configChuva" class="config-chuva" aria-hidden="true"></canvas>
+      <div class="config-barra">
+        <span class="hack-dot"></span><span class="hack-dot"></span><span class="hack-dot"></span>
+        <span class="config-titulo">root@sorteio:~# configurar</span>
+        <span id="closeModal" class="close" title="Fechar">&times;</span>
+      </div>
+      <div class="config-corpo">
+        <h2>Configurações</h2>
 
-      <label for="spinTime">Tempo da roleta (em segundos):</label>
-      <input type="number" id="spinTime" min="1" max="60" value="10"><br><br>
+        <div class="config-campo">
+          <label for="fireworksCount">&gt; Quantidade de foguetes:</label>
+          <input type="number" id="fireworksCount" min="1" max="20" value="5">
+        </div>
 
-      <label>
-        <input type="checkbox" id="toggleSpeechTimer" checked>
-        Mostrar timer
-      </label>
-      <br><br>
+        <div class="config-campo">
+          <label for="spinTime">&gt; Tempo da roleta (segundos):</label>
+          <input type="number" id="spinTime" min="1" max="60" value="10">
+        </div>
 
-      <button id="saveConfig" class="btn-save-config">Salvar Configurações</button>
+        <div class="config-campo">
+          <label class="config-check">
+            <input type="checkbox" id="toggleSpeechTimer" checked>
+            &gt; Mostrar timer
+          </label>
+        </div>
+
+        <button id="saveConfig" class="btn-save-config">[ Salvar configurações ]</button>
+      </div>
     </div>
   </div>
 

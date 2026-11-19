@@ -1000,6 +1000,330 @@ button:hover .ripple {
     will-change: transform, opacity;
 }
 
+/* ENCERRAMENTO DA REUNIÃO — mensagem, ícone, túnel de código e desktop dos anos 90 (ver atualizarEncerramento em script.js) */
+.enc {
+    position: fixed;
+    inset: 0;
+    z-index: 1100; /* acima de tudo, inclusive do CRT e dos toasts */
+    opacity: 0;
+    overflow: hidden;
+    background: #000;
+    color: var(--primary-color);
+}
+
+.enc[hidden] {
+    display: none;
+}
+
+.enc-painel {
+    position: absolute;
+    inset: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+    text-align: center;
+    border: 1px solid var(--primary-color);
+    border-radius: 12px;
+    background: rgba(0, 12, 4, 0.92);
+    box-shadow: 0 0 40px rgba(0, 255, 136, 0.45), inset 0 0 60px rgba(0, 255, 136, 0.08);
+}
+
+.enc-painel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.18) 0px, rgba(0, 0, 0, 0.18) 1px, transparent 1px, transparent 3px);
+}
+
+.enc-linha1 {
+    min-height: 1.3em;
+    font-size: clamp(1.1rem, 5vw, 2.8rem);
+    letter-spacing: 0.16em;
+    text-shadow: 0 0 14px var(--primary-color);
+}
+
+.enc-linha2 {
+    min-height: 1.3em;
+    font-size: clamp(0.9rem, 2.8vw, 1.6rem);
+    color: var(--text-secondary);
+}
+
+.enc-tunel {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+}
+
+.enc-icone-voo {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 96px;
+    height: 96px;
+    margin: -48px 0 0 -48px;
+    opacity: 0;
+    z-index: 3;   /* acima do monitor: o ícone voa até o desktop */
+    will-change: transform, opacity;
+}
+
+.enc-flash {
+    position: absolute;
+    inset: 0;
+    background: #d8ffea;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 4;
+}
+
+/* ícone do aplicativo: a roleta com o ponteiro */
+.app-icone {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 22%;
+    background: #050505;
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 18px rgba(0, 255, 136, 0.7);
+}
+
+.app-icone::before {
+    content: '';
+    position: absolute;
+    inset: 18%;
+    border-radius: 50%;
+    background: conic-gradient(#e94 0 12.5%, #5c5 0 25%, #4ae 0 37.5%, #c4e 0 50%, #ee5 0 62.5%, #e55 0 75%, #5ee 0 87.5%, #76e 0);
+}
+
+.app-icone::after {
+    content: '';
+    position: absolute;
+    top: 2%;
+    left: 50%;
+    width: 18%;
+    aspect-ratio: 1;
+    transform: translateX(-50%);
+    background: #e90e0e;
+    clip-path: polygon(50% 100%, 0 0, 100% 0);
+}
+
+/* computador dos anos 90 */
+.enc-monitor {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    background: radial-gradient(circle at 50% 40%, #1a1d1b, #050505);
+}
+
+.crt-corpo {
+    position: relative;
+    width: min(92vw, calc(86vh * 1.3));
+    aspect-ratio: 1.3 / 1;
+    padding: 4.5% 4.5% 9%;
+    border-radius: 22px 22px 14px 14px;
+    background: linear-gradient(145deg, #d8d2bd, #bdb7a2);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.5), inset 0 -4px 8px rgba(0, 0, 0, 0.25);
+}
+
+.crt-tela {
+    --ico: clamp(34px, 5.2vw, 58px);
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 18px / 14px;
+    background: #008080;
+    box-shadow: inset 0 0 0 6px #6b6857, inset 0 0 40px rgba(0, 0, 0, 0.55);
+    transform-origin: 50% 50%;
+}
+
+.crt-tela::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.12), transparent 45%),
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0px, rgba(0, 0, 0, 0.1) 1px, transparent 1px, transparent 3px);
+}
+
+.crt-base {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 2.5%;
+    height: 5%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 6%;
+}
+
+.crt-base .led {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #3f3;
+    box-shadow: 0 0 8px #3f3;
+}
+
+.desk {
+    position: absolute;
+    inset: 0;
+    font-family: Tahoma, 'MS Sans Serif', Arial, sans-serif;
+    font-size: clamp(9px, 1.3vw, 13px);
+}
+
+.desk-icones {
+    position: absolute;
+    top: 4%;
+    left: 3%;
+    display: flex;
+    flex-direction: column;
+    gap: 5%;
+}
+
+.desk-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: calc(var(--ico) * 1.9);
+    color: #fff;
+    text-align: center;
+    text-shadow: 1px 1px 0 #000;
+    cursor: default;
+}
+
+.desk-item span {
+    padding: 1px 3px;
+}
+
+.desk-item .app-icone {
+    width: var(--ico);
+}
+
+.desk-app {
+    cursor: pointer;
+    outline: none;
+}
+
+.desk-app:hover span,
+.desk-app:focus-visible span,
+.desk-app.sel span {
+    background: #000080;
+    outline: 1px dotted #ff0;
+}
+
+.desk-dica {
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 8%;
+    padding: 4px 8px;
+    background: #ffffe1;
+    color: #000;
+    border: 1px solid #000;
+    text-shadow: none;
+    white-space: nowrap;
+}
+
+.ico-pc {
+    position: relative;
+    width: var(--ico);
+    aspect-ratio: 1;
+    border: 2px solid #404040;
+    border-radius: 4px;
+    background: linear-gradient(#c8c8c8, #9a9a9a);
+}
+
+.ico-pc::before {
+    content: '';
+    position: absolute;
+    inset: 14% 14% 30% 14%;
+    border: 1px solid #000;
+    background: #008080;
+}
+
+.ico-lixeira {
+    width: calc(var(--ico) * 0.8);
+    height: var(--ico);
+    background: linear-gradient(90deg, #8a8a8a, #d0d0d0, #8a8a8a);
+    clip-path: polygon(8% 0, 92% 0, 100% 100%, 0 100%);
+}
+
+.desk-barra {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 7%;
+    min-height: 22px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px;
+    background: #c0c0c0;
+    border-top: 2px solid #fff;
+    color: #000;
+}
+
+.desk-iniciar,
+.desk-tarefa {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 8px;
+    border: 2px solid;
+    font-weight: 700;
+}
+
+.desk-iniciar {
+    border-color: #fff #404040 #404040 #fff;
+    background: #c0c0c0;
+}
+
+.desk-tarefa {
+    flex: 1;
+    max-width: 30%;
+    border-color: #404040 #fff #fff #404040;
+    background: #d4d4d4;
+    font-weight: 400;
+}
+
+.desk-relogio {
+    margin-left: auto;
+    padding: 1px 8px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+}
+
+.bandeira {
+    width: 12px;
+    height: 12px;
+    background:
+        linear-gradient(#f33 0 50%, #3c3 0) left / 50% 100% no-repeat,
+        linear-gradient(#37f 0 50%, #fc3 0) right / 50% 100% no-repeat;
+}
+
+/* espectador: vê o ícone e a dica, mas não consegue clicar */
+.viewer .desk-app {
+    pointer-events: none;
+    cursor: default;
+}
+
+.viewer .desk-dica {
+    display: none;
+}
+
 /* SCROLLBAR PERSONALIZADA */
 ::-webkit-scrollbar {
     width: 8px;

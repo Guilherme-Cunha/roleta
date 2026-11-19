@@ -155,6 +155,42 @@
     </div>
   </div>
 
+  <!-- Encerramento da reunião: mensagem → ícone → túnel de código binário → desktop de um computador dos anos 90 -->
+  <div id="encerramento" class="enc" aria-hidden="true" hidden>
+    <div id="encPainel" class="enc-painel">
+      <div id="encLinha1" class="enc-linha1"></div>
+      <div id="encLinha2" class="enc-linha2"></div>
+    </div>
+    <canvas id="encTunel" class="enc-tunel"></canvas>
+    <div id="encVoo" class="enc-icone-voo"><div class="app-icone"></div></div>
+
+    <div id="encMonitor" class="enc-monitor">
+      <div class="crt-corpo">
+        <div id="encTela" class="crt-tela">
+          <div class="desk">
+            <div class="desk-icones">
+              <div class="desk-item"><div class="ico-pc"></div><span>Meu Computador</span></div>
+              <div class="desk-item"><div class="ico-lixeira"></div><span>Lixeira</span></div>
+              <div id="deskRoleta" class="desk-item desk-app" role="button" tabindex="0" title="Abrir a roleta">
+                <div class="app-icone"></div>
+                <span>Roleta.exe</span>
+                <div id="deskDica" class="desk-dica">Clique no ícone para reabrir a roleta</div>
+              </div>
+            </div>
+            <div class="desk-barra">
+              <div class="desk-iniciar"><i class="bandeira"></i>Iniciar</div>
+              <div class="desk-tarefa">Reunião encerrada</div>
+              <div id="deskRelogio" class="desk-relogio">00:00</div>
+            </div>
+          </div>
+        </div>
+        <div class="crt-base"><i class="led"></i></div>
+      </div>
+    </div>
+
+    <div id="encFlash" class="enc-flash"></div>
+  </div>
+
   <script src="script.js"></script>
   <!-- Sincronização Firebase (anfitrião grava, espectadores só leem) -->
   <script type="module" src="sync.js"></script>

@@ -418,7 +418,9 @@ window.obterEstado = function() {
         foguetes: configFoguetes,
         timer: JSON.parse(JSON.stringify(timerEstado)),
         nomes: textoNomes,
-        padrao: usandoListaPadrao
+        padrao: usandoListaPadrao,
+        neoVoo: neoVooAtual,
+        enc: encLocal
     };
 };
 
@@ -506,7 +508,7 @@ window.aplicarEstadoRemoto = function(estado) {
         giro = novoGiro;
         giroConcluidoId = null;
         giroEfeitosId = null;
-        if (agora() >= giro.startTime + giro.duration) {
+        if (agora() >= giro.startTime + giro.duration + 1500) {
             // Entrou depois do giro terminar: só mostra o resultado, sem repetir som e fogos
             giroConcluidoId = giro.id;
             const entry = entries.find(e => e.id === giro.winnerId);
@@ -516,6 +518,9 @@ window.aplicarEstadoRemoto = function(estado) {
             if (agora() < giro.startTime + 400) pressionarBotao(document.getElementById('spinBtn'));   // espelha o clique do anfitrião
         }
     }
+
+    aplicarVooRemoto(novo.neoVoo);
+    aplicarEncerramentoRemoto(novo.enc);
 
     atualizarBotao();
 };
@@ -735,7 +740,7 @@ function easeOutCubic(p) {
 
 function anguloEm(now) {
     if (giro) {
-        const p = Math.min(Math.max((now - giro.startTime) / giro.duration, 0), 1);
+        const p = Math.min(Math.max((now - giro.startTime) / Math.max(1, giro.duration), 0), 1);
         return giro.from + (giro.to - giro.from) * easeOutCubic(p);
     }
     return repouso.angulo + IDLE_SPEED * Math.max(0, now - repouso.desde);
@@ -760,12 +765,14 @@ window.girar = function() {
     const minimo = from + (5 + Math.floor(Math.random() * 5)) * Math.PI * 2;
     const to = base + Math.PI * 2 * Math.ceil((minimo - base) / (Math.PI * 2));
 
+    // Só resta um nome: não há o que girar, o resultado aparece direto (sem pouso do Neo nem espera)
+    const ultimo = entries.length === 1;
     giro = {
         id: `${now}-${Math.floor(Math.random() * 1e6)}`,
-        startTime: now + ATRASO_BONECO,
-        duration: configDuracao,
+        startTime: ultimo ? now : now + ATRASO_BONECO,
+        duration: ultimo ? 0 : configDuracao,
         from,
-        to,
+        to: ultimo ? from : to,
         winnerId: entries[indice].id
     };
     giroConcluidoId = null;
@@ -778,7 +785,7 @@ window.girar = function() {
 
 function iniciarGiroLocal() {
     lastTickAngle = giro.from;
-    window.animarBoneco(giro.startTime);
+    if (giro.duration > 0) window.animarBoneco(giro.startTime);
 }
 
 function processarGiro(now) {
@@ -837,9 +844,11 @@ function confirmarVencedor() {
 
     esconderModalVencedor();
     if (entries.length === 0) {
+        pauseTimer();   // acabou: o geral e o de quem acabou de falar param
         const namesInput = document.getElementById('names');
         if (namesInput) namesInput.value = '';
         window.setupWheel('');
+        encerrarReuniao();
     }
 
     atualizarBotao();
@@ -908,6 +917,7 @@ function frame() {
     startAngle = anguloEm(now);
 
     atualizarTimerUI(now);
+    atualizarEncerramento(now);
     if (giro) processarGiro(now);
 
     const perf = performance.now();
@@ -1648,6 +1658,345 @@ function escalaFechar(modalEl, conteudo) {
     };
 }
 
+// ENCERRAMENTO DA REUNIÃO
+// Ao clicar em OK no último sorteado: aparece "Reunião encerrada, até a próxima", a tela inteira vira um
+// ícone, o ícone entra num túnel de código binário e, 3 s depois, é colocado num computador dos anos 90 —
+// o desktop dele é a nova tela. Clicando no ícone, a roleta volta pelo mesmo túnel.
+// Tudo é função do tempo do servidor (estado.enc = { t0, volta }), então os espectadores veem a mesma cena.
+let encLocal = null;   // o que o anfitrião publica: { t0, volta? }
+let encAnim = null;    // o que está sendo animado neste cliente: { t0, volta }
+let encVisivel = false;
+let encTunelAtivo = false;
+let encSons = {};
+let encResetFeito = false;
+let encRelogio = '';
+
+const encEl = document.getElementById('encerramento');
+const encPainel = document.getElementById('encPainel');
+const encLinha1 = document.getElementById('encLinha1');
+const encLinha2 = document.getElementById('encLinha2');
+const encTunel = document.getElementById('encTunel');
+const encTunelCtx = encTunel.getContext('2d');
+const encVoo = document.getElementById('encVoo');
+const encMonitor = document.getElementById('encMonitor');
+const encTela = document.getElementById('encTela');
+const encFlash = document.getElementById('encFlash');
+const deskRoleta = document.getElementById('deskRoleta');
+const deskIcone = deskRoleta.querySelector('.app-icone');
+const deskRelogio = document.getElementById('deskRelogio');
+
+// marcos da linha do tempo (ms desde o fim da reunião)
+const ENC_ICONE = 96;      // tamanho do ícone que voa pelo túnel (px)
+const ENC_MSG_FIM = 2800;  // mensagem na tela
+const ENC_COLAPSO_FIM = 3600;   // a tela encolhe até virar o ícone
+const ENC_TUNEL_FIM = 6600;     // 3 s dentro do túnel
+const ENC_PLACA_FIM = 7600;     // computador liga e o ícone é colocado no desktop
+const ENC_VOLTA_FIM = 3500;     // (ms desde o clique no ícone) túnel de volta + revela a roleta
+
+function encerrarReuniao() {
+    if (encAnim) return;
+    encLocal = { t0: agora() + 300 };   // espera a janela do sorteado fechar
+    encAnim = { t0: encLocal.t0, volta: null };
+    encSons = {};
+    encResetFeito = false;
+    publicar();
+}
+
+// Anfitrião: clique no ícone do desktop → roleta volta
+function reabrirDoDesktop() {
+    if (window.isViewer || !encAnim || encAnim.volta) return;
+    if (agora() - encAnim.t0 < ENC_PLACA_FIM) return;   // só depois que o ícone foi colocado
+    encAnim.volta = agora();
+    encLocal = { t0: encAnim.t0, volta: encAnim.volta };
+    publicar();
+}
+deskRoleta.addEventListener('click', reabrirDoDesktop);
+deskRoleta.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        reabrirDoDesktop();
+    }
+});
+
+// Anfitrião: depois da volta, recomeça do zero (timers, nomes e lista padrão)
+function resetarAposEncerramento() {
+    if (encResetFeito) return;
+    encResetFeito = true;
+    if (window.isViewer) return;   // o espectador recebe o estado novo do anfitrião
+    timerEstado = { ...timerPadrao(), mostrar: timerEstado.mostrar };
+    const campo = document.getElementById('names');
+    if (campo) campo.value = '';
+    window.setupWheel('');
+    encLocal = null;
+    publicar();
+}
+
+function ajustarTunel() {
+    encTunel.width = window.innerWidth;
+    encTunel.height = window.innerHeight;
+    encTunelAtivo = false;
+}
+window.addEventListener('resize', () => { if (encVisivel) ajustarTunel(); });
+
+function mostrarEnc() {
+    encVisivel = true;
+    encEl.hidden = false;
+    document.querySelector('.container').inert = true;
+    ajustarTunel();
+}
+
+function esconderEnc() {
+    encVisivel = false;
+    encEl.hidden = true;
+    encEl.style.opacity = '0';
+    document.querySelector('.container').inert = false;
+    encMonitor.style.transformOrigin = '';
+    [encPainel, encMonitor, encTela].forEach((el) => { el.style.transform = ''; el.style.opacity = ''; el.style.filter = ''; });
+    encVoo.style.opacity = '0';
+    encTunel.style.opacity = '0';
+    encFlash.style.opacity = '0';
+    deskIcone.style.visibility = '';
+    deskRoleta.classList.remove('sel');
+    encLinha1.textContent = '';
+    encLinha2.textContent = '';
+    encTunelAtivo = false;
+}
+
+function tocarChime90s() {
+    try {
+        const a = getTickAudioCtx();
+        const t0 = a.currentTime + 0.02;
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const t = t0 + i * 0.16;
+            const osc = a.createOscillator();
+            const g = a.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.exponentialRampToValueAtTime(0.07, t + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+            osc.connect(g);
+            g.connect(a.destination);
+            osc.start(t);
+            osc.stop(t + 0.52);
+        });
+    } catch (e) { /* áudio ainda não liberado pelo navegador: segue sem som */ }
+}
+
+// Túnel de código binário em perspectiva: anéis de 0 e 1 que correm para perto da câmera
+function desenharTunel(tMs, u, fator, alfa) {
+    const c = encTunelCtx;
+    const w = encTunel.width;
+    const h = encTunel.height;
+    if (!encTunelAtivo) {
+        c.fillStyle = '#000';
+        c.fillRect(0, 0, w, h);
+        encTunelAtivo = true;
+    }
+    encTunel.style.opacity = alfa.toFixed(3);
+    c.fillStyle = 'rgba(0, 0, 0, 0.3)';   // rastro
+    c.fillRect(0, 0, w, h);
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const rMax = Math.hypot(w, h) * 0.62;
+    const colunas = 30;
+    const aneis = 16;
+    const avanco = (tMs / 1000) * (0.35 + 0.9 * u) * fator;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+
+    for (let j = 0; j < aneis; j++) {
+        const s = (j / aneis + avanco) % 1;   // 0 = longe, 1 = perto
+        const r = rMax * s * s;
+        c.font = `bold ${(6 + 40 * s * s).toFixed(1)}px monospace`;
+        const a = 0.15 + 0.85 * s;
+        c.fillStyle = s > 0.85 ? `rgba(190, 255, 220, ${a})` : `rgba(0, 255, 136, ${a})`;
+        for (let k = 0; k < colunas; k++) {
+            const ang = (k / colunas) * Math.PI * 2 + s * 1.4 + tMs * 0.00012;
+            const ch = ((k * 7 + j * 13 + Math.floor(tMs / 140)) & 1) ? '1' : '0';
+            c.fillText(ch, cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
+        }
+    }
+}
+
+function textoComCursor(texto, digitando, piscando) {
+    return texto + (digitando || piscando ? '█' : '');
+}
+
+function quadroIda(t) {
+    encEl.style.opacity = limitar01(t / 500).toFixed(3);
+
+    // 1) mensagem, "digitada" no estilo terminal
+    const l1 = '> REUNIÃO ENCERRADA';
+    const l2 = 'Até a próxima!';
+    const n1 = Math.max(0, Math.min(l1.length, Math.floor((t - 300) / 45)));
+    const n2 = Math.max(0, Math.min(l2.length, Math.floor((t - 1300) / 55)));
+    const piscando = Math.floor(t / 500) % 2 === 0;
+    definirTexto(encLinha1, textoComCursor(l1.slice(0, n1), n1 < l1.length, false));
+    definirTexto(encLinha2, n1 < l1.length ? '' : textoComCursor(l2.slice(0, n2), n2 < l2.length, piscando && n2 === l2.length));
+
+    // 2) a tela inteira encolhe até virar o ícone
+    if (t < ENC_MSG_FIM) {
+        encPainel.style.transform = '';
+        encPainel.style.opacity = '1';
+        encLinha1.style.opacity = encLinha2.style.opacity = '1';
+        encVoo.style.opacity = '0';
+    } else if (t < ENC_COLAPSO_FIM) {
+        const u = suave((t - ENC_MSG_FIM) / (ENC_COLAPSO_FIM - ENC_MSG_FIM));
+        const w = encPainel.offsetWidth || 1;
+        const h = encPainel.offsetHeight || 1;
+        encPainel.style.transform = `scale(${lerp(1, ENC_ICONE / w, u)}, ${lerp(1, ENC_ICONE / h, u)})`;
+        encLinha1.style.opacity = encLinha2.style.opacity = String(1 - limitar01(u * 2.2));
+        encPainel.style.opacity = String(1 - limitar01((u - 0.7) / 0.3));
+        encVoo.style.opacity = String(limitar01((u - 0.35) / 0.65));
+        encVoo.style.transform = 'scale(1)';
+    } else {
+        encPainel.style.opacity = '0';
+    }
+
+    // 3) túnel de código binário (3 s) com o ícone se afastando para o fundo
+    if (t >= ENC_COLAPSO_FIM && t < ENC_TUNEL_FIM + 400) {
+        const tt = t - ENC_COLAPSO_FIM;
+        const u = limitar01(tt / (ENC_TUNEL_FIM - ENC_COLAPSO_FIM));
+        const alfa = t < ENC_COLAPSO_FIM + 300 ? (t - ENC_COLAPSO_FIM) / 300 : t > ENC_TUNEL_FIM ? 1 - (t - ENC_TUNEL_FIM) / 400 : 1;
+        desenharTunel(tt, u, 1, limitar01(alfa));
+        if (!encSons.tunel && t < ENC_COLAPSO_FIM + 600) {
+            encSons.tunel = true;
+            tocarSaidaDaMatrix();
+        }
+    } else {
+        encTunel.style.opacity = '0';
+        encTunelAtivo = false;
+    }
+
+    // 4) clarão, o computador liga (efeito de TV antiga) e o ícone é colocado no desktop
+    const flash = t < 6500 ? 0 : t < 6600 ? (t - 6500) / 100 * 0.9 : t < 7000 ? 0.9 * (1 - (t - 6600) / 400) : 0;
+    encFlash.style.opacity = flash.toFixed(3);
+
+    if (t < 6700) {
+        encMonitor.style.opacity = '0';
+    } else {
+        encMonitor.style.opacity = '1';
+        const lig = easeOut(limitar01((t - 6750) / 350));
+        encTela.style.transform = lig < 1 ? `scale(1, ${lerp(0.02, 1, lig).toFixed(3)})` : '';
+        encTela.style.filter = lig < 1 ? `brightness(${lerp(4, 1, lig).toFixed(2)})` : '';
+    }
+
+    const noDesktop = t >= ENC_PLACA_FIM;
+    deskIcone.style.visibility = noDesktop ? 'visible' : 'hidden';
+    deskRoleta.classList.remove('sel');
+
+    if (t >= ENC_COLAPSO_FIM && t < ENC_PLACA_FIM) {
+        let escala;
+        let dx = 0;
+        let dy = 0;
+        if (t < 7100) {
+            escala = lerp(1, 0.12, easeIn(limitar01((t - ENC_COLAPSO_FIM) / (ENC_TUNEL_FIM - ENC_COLAPSO_FIM))));
+        } else {
+            // o ícone voa do fundo do túnel até o seu lugar no desktop
+            const r = deskIcone.getBoundingClientRect();
+            const p = easeOut(limitar01((t - 7100) / (ENC_PLACA_FIM - 7100)));
+            escala = lerp(0.12, r.width / ENC_ICONE, p);
+            dx = (r.left + r.width / 2 - window.innerWidth / 2) * p;
+            dy = (r.top + r.height / 2 - window.innerHeight / 2) * p;
+            if (!encSons.chime) {
+                encSons.chime = true;
+                tocarChime90s();
+            }
+        }
+        encVoo.style.opacity = '1';
+        encVoo.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${escala.toFixed(3)})`;
+    } else if (noDesktop) {
+        encVoo.style.opacity = '0';
+    }
+
+    // relógio do desktop
+    const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (hora !== encRelogio) {
+        encRelogio = hora;
+        deskRelogio.textContent = hora;
+    }
+}
+
+function quadroVolta(tv) {
+    encEl.style.opacity = tv > 3000 ? String(1 - limitar01((tv - 3000) / 500)) : '1';
+    encPainel.style.opacity = '0';
+    encLinha1.textContent = encLinha2.textContent = '';
+    deskIcone.style.visibility = 'visible';
+    deskRoleta.classList.toggle('sel', tv < 900);
+
+    if (tv < 900) {
+        // zoom do monitor até o ícone clicado
+        const u = suave(limitar01((tv - 250) / 650));
+        encMonitor.style.transform = '';   // mede o ícone sem o zoom aplicado (vale também para quem entra no meio)
+        const r = deskIcone.getBoundingClientRect();
+        encMonitor.style.transformOrigin = `${r.left + r.width / 2}px ${r.top + r.height / 2}px`;
+        encMonitor.style.transform = `scale(${lerp(1, 7, u).toFixed(3)})`;
+        encMonitor.style.opacity = String(1 - limitar01((u - 0.55) / 0.45));
+        encVoo.style.opacity = '0';
+        encTunel.style.opacity = '0';
+        encTunelAtivo = false;
+    } else {
+        // túnel de volta: o ícone cresce vindo do fundo, na direção da câmera
+        encMonitor.style.opacity = '0';
+        const tt = tv - 900;
+        const u = limitar01(tt / 2100);
+        const alfa = tv < 1200 ? (tv - 900) / 300 : tv > 2700 ? 1 - (tv - 2700) / 300 : 1;
+        desenharTunel(tt, u, 1.8, limitar01(alfa));
+        encVoo.style.opacity = '1';
+        encVoo.style.transform = `scale(${lerp(0.12, 1.6, easeIn(u)).toFixed(3)})`;
+        if (!encSons.volta && tv < 1500) {
+            encSons.volta = true;
+            tocarSaidaDaMatrix();
+        }
+    }
+
+    const flash = tv < 2700 ? 0 : tv < 3000 ? (tv - 2700) / 300 * 0.9 : 0.9 * (1 - limitar01((tv - 3000) / 500));
+    encFlash.style.opacity = flash.toFixed(3);
+
+    if (tv >= 2900) resetarAposEncerramento();   // a roleta já está nova quando o clarão a revela
+}
+
+function atualizarEncerramento(now) {
+    const a = encAnim;
+    if (!a) {
+        if (encVisivel) esconderEnc();
+        return;
+    }
+    const t = now - a.t0;
+    if (t < 0) return;
+    if (!encVisivel) mostrarEnc();
+
+    if (a.volta && now >= a.volta) {
+        const tv = now - a.volta;
+        if (reduzMovimento || tv >= ENC_VOLTA_FIM) {
+            resetarAposEncerramento();
+            encAnim = null;
+            esconderEnc();
+            return;
+        }
+        quadroVolta(tv);
+    } else {
+        quadroIda(reduzMovimento && t > ENC_MSG_FIM ? Math.max(t, ENC_PLACA_FIM) : t);
+    }
+}
+
+// Espectador: segue o que o anfitrião publicou
+function aplicarEncerramentoRemoto(e) {
+    if (e && e.t0) {
+        if (!encAnim || encAnim.t0 !== e.t0) {
+            encAnim = { t0: e.t0, volta: e.volta || null };
+            encSons = {};
+            encResetFeito = false;
+        } else if (e.volta && !encAnim.volta) {
+            encAnim.volta = e.volta;
+        }
+    } else if (encAnim && !encAnim.volta) {
+        encAnim = null;   // o anfitrião recomeçou sem passar pela volta (ex.: recarregou a página)
+    }
+}
+
 window.onload = () => {
     if (window.isViewer) {
         // Não limpa o estado aqui: o banco pode já ter respondido antes do load terminar
@@ -1671,11 +2020,14 @@ if (window.isViewer === false) {
 }
 
 // NEO VOADOR
-// De 30 s a 2,5 min (sorteado a cada vez) ele cruza a tela voando (passagem direta, mergulho/subida ou parada no ar
-// e arrancada). É só decoração: cada cliente sorteia o próprio trajeto.
+// De 30 s a 2,5 min (sorteado a cada vez) ele cruza a tela voando (passagem direta, mergulho/subida ou
+// parada no ar e arrancada). O anfitrião sorteia o voo e o publica (estado.neoVoo); anfitrião e espectadores
+// executam o MESMO voo, no mesmo horário. As alturas são frações da altura da tela de cada um.
 const neoEl = document.getElementById('bonecoVoador');
 let neoEmVoo = false;
 let neoAnimAtual = null;
+let neoVooAtual = null;   // último voo sorteado (publicado no estado)
+let neoVooVisto = null;   // id do último voo já tratado neste cliente
 // Intervalo (ms) entre uma aparição e a próxima: sorteado a cada vez
 const NEO_INTERVALO_MIN = 30000;
 const NEO_INTERVALO_MAX = 150000;
@@ -1685,47 +2037,66 @@ const easeOut = (p) => 1 - Math.pow(1 - p, 3);
 const easeIn = (p) => p * p * p;
 
 function agendarNeo(ms = aleatorio(NEO_INTERVALO_MIN, NEO_INTERVALO_MAX)) {
+    if (window.isViewer) return;   // só o anfitrião sorteia
     setTimeout(voarNeo, ms);
 }
 
+// Anfitrião: sorteia o voo, executa e publica
 function voarNeo() {
-    if (neoEmVoo || neoPousando || document.hidden) {
+    if (window.isViewer) return;
+    if (neoEmVoo || neoPousando || encAnim || document.hidden) {
         agendarNeo(500);
         return;
     }
     agendarNeo();
 
+    const sorteio = Math.random();
+    const tipo = sorteio < 0.25 ? 'mergulho' : sorteio < 0.45 ? 'subida' : sorteio < 0.75 ? 'paira' : 'direto';
+    const paira = tipo === 'paira';
+    const voo = {
+        id: `${agora()}-${Math.floor(Math.random() * 1e6)}`,
+        t0: agora(),
+        dir: Math.random() < 0.5 ? 1 : -1,                    // 1: esquerda→direita
+        tipo,
+        yIni: paira ? aleatorio(0.1, 0.4) : aleatorio(0.08, 0.8),
+        yFim: paira ? aleatorio(0.1, 0.4) : aleatorio(0.05, 0.85),
+        yParada: aleatorio(0.25, 0.65),
+        duracao: Math.round(paira ? aleatorio(3000, 3600) : aleatorio(2200, 3000)),
+        giro: !paira && Math.random() < 0.4 ? 360 : 0         // tonel (barrel roll)
+    };
+    neoVooAtual = voo;
+    neoVooVisto = voo.id;
+    executarVooNeo(voo, 0);
+    publicar();
+}
+
+// Executa um voo a partir do instante `decorrido` (ms): quem chega no meio entra na hora certa
+function executarVooNeo(voo, decorrido) {
+    if (!neoEl.animate || reduzMovimento || neoEmVoo || neoPousando) return;
+
     const w = window.innerWidth;
     const h = window.innerHeight;
     const larg = neoEl.offsetWidth || 160;
     const alt = neoEl.offsetHeight || 70;
-    const dir = Math.random() < 0.5 ? 1 : -1;          // 1: esquerda→direita
+    const dir = voo.dir;
     const xIni = dir === 1 ? -larg - 10 : w + 10;
     const xFim = dir === 1 ? w + 10 : -larg - 10;
-    const sorteio = Math.random();
     const yMax = Math.max(h - alt, alt);
+    const paira = voo.tipo === 'paira';
 
-    let yIni = aleatorio(0.08, 0.8) * yMax;
-    let yFim = aleatorio(0.05, 0.85) * yMax;
-    let duracao = aleatorio(2200, 3000);
-    let paira = false;
-
-    if (sorteio < 0.25) {              // mergulho: do alto até embaixo
+    let yIni = voo.yIni * yMax;
+    let yFim = voo.yFim * yMax;
+    if (voo.tipo === 'mergulho') {         // do alto até embaixo
         yIni = -alt;
         yFim = yMax + alt * 0.5;
-    } else if (sorteio < 0.45) {       // subida: de baixo até o alto
+    } else if (voo.tipo === 'subida') {    // de baixo até o alto
         yIni = yMax + alt * 0.5;
         yFim = -alt;
-    } else if (sorteio < 0.75) {       // chega, paira no ar e arranca
-        paira = true;
-        duracao = aleatorio(3000, 3600);
-        yIni = aleatorio(0.1, 0.4) * yMax;
-        yFim = aleatorio(0.1, 0.4) * yMax;
     }
 
-    const giro = !paira && Math.random() < 0.4 ? 360 : 0;   // tonel (barrel roll)
+    const giro = voo.giro;
     const inclinacao = Math.atan2(yFim - yIni, Math.abs(xFim - xIni)) * 180 / Math.PI;
-    const yParada = aleatorio(0.25, 0.65) * yMax;
+    const yParada = voo.yParada * yMax;
     const xParada = lerp(xIni, xFim, 0.5);
 
     const posicao = (p) => {            // p: 0..1 do voo -> {x, y, rot}
@@ -1757,12 +2128,21 @@ function voarNeo() {
     }
 
     neoEmVoo = true;
-    const anim = neoEl.animate(quadros, { duration: duracao, easing: 'linear' });
+    const anim = neoEl.animate(quadros, { duration: voo.duracao, easing: 'linear' });
+    if (decorrido > 0) anim.currentTime = decorrido;
     neoAnimAtual = anim;
     anim.onfinish = anim.oncancel = () => { if (neoAnimAtual === anim) neoEmVoo = false; };
 }
 
-if (neoEl.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+// Espectador: executa o voo que o anfitrião publicou (ignora voos que já terminaram)
+function aplicarVooRemoto(voo) {
+    if (!voo || !voo.id || voo.id === neoVooVisto) return;
+    neoVooVisto = voo.id;
+    const decorrido = agora() - voo.t0;
+    if (decorrido >= 0 && decorrido < voo.duracao - 200) executarVooNeo(voo, decorrido);
+}
+
+if (!window.isViewer && neoEl.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     agendarNeo(aleatorio(20000, 60000));
 }
 

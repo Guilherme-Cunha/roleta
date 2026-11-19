@@ -367,7 +367,7 @@ let configFoguetes = 5;
 let configDuracao = 10000;
 const timerPadrao = () => ({
     mostrar: true, rodando: false, base: 0, desde: 0,
-    pessoa: { nome: '', rodando: false, base: 0, desde: 0 },   // quem está falando agora
+    pessoa: { nome: '', rodando: false, base: 0, desde: 0, giroId: '' },   // quem está falando agora (giroId: sorteio a que pertence)
     historico: []                                              // quem já falou: [{ nome, segundos }]
 });
 let timerEstado = timerPadrao();
@@ -469,6 +469,8 @@ window.aplicarEstadoRemoto = function(estado) {
     if (!window.isViewer) return;
     const novo = estado || {};
     const rodandoAntes = timerEstado.rodando;
+    const falaAntes = timerEstado.pessoa.giroId;
+    const jaRecebido = estadoRemotoRecebido;
 
     usandoListaPadrao = novo.padrao !== false;   // sem estado = lista de demonstração
     const campoNomes = document.getElementById('names');
@@ -519,6 +521,7 @@ window.aplicarEstadoRemoto = function(estado) {
         }
     }
 
+    if (jaRecebido && giro && timerEstado.pessoa.giroId === giro.id && falaAntes !== giro.id) pressionarBotao(document.getElementById('okBtn'));
     aplicarVooRemoto(novo.neoVoo);
     aplicarEncerramentoRemoto(novo.enc);
 
@@ -823,16 +826,13 @@ function concluirGiro() {
     const entry = entries.find(e => e.id === giro.winnerId);
     if (entry) mostrarVencedor(entry, false);
 
-    // A fala começa no instante em que a roleta parou (mesmo valor para todos, mesmo com a aba em segundo plano)
-    if (entry && !window.isViewer) {
-        iniciarFalaDe(entry.name, giro.startTime + giro.duration);
-        publicar();
-    }
 }
 
 // Anfitrião: botão OK — remove o vencedor da roleta e libera o próximo giro
 function confirmarVencedor() {
     if (window.isViewer || !giro) return;
+
+    pararContador(timerEstado.pessoa);   // Próximo: quem estava falando terminou; o tempo dele fica congelado
 
     entries = entries.filter(e => e.id !== giro.winnerId);
     arc = entries.length ? Math.PI * 2 / entries.length : 0;
@@ -873,6 +873,12 @@ function esconderModalVencedor() {
 function mostrarVencedor(entry, silencioso) {
     vencedorId = entry.id;
 
+    // Cancela um fechamento (efeito Escala) ainda em andamento: senão ele terminaria e esconderia a janela recém-aberta
+    modalAnimId++;
+    modalFechando = false;
+    document.getElementById('modal').getAnimations().forEach((an) => an.cancel());
+    document.getElementById('modalContent').getAnimations().forEach((an) => an.cancel());
+
     const winnerEl = document.getElementById('winner');
     winnerEl.classList.remove('glitch');
     void winnerEl.offsetWidth;
@@ -885,6 +891,7 @@ function mostrarVencedor(entry, silencioso) {
     // o espectador vê o OK, mas não consegue acioná-lo
     const okBtn = document.getElementById('okBtn');
     if (okBtn) {
+        okBtn.textContent = '[ OK ]';
         okBtn.style.display = 'inline-block';
         okBtn.classList.toggle('somente-leitura', !!window.isViewer);
     }
@@ -909,7 +916,20 @@ function mostrarVencedor(entry, silencioso) {
     fireworks();
 }
 
-document.getElementById('okBtn').addEventListener('click', confirmarVencedor);
+// Botão da janela do sorteado, em dois passos:
+//  1º clique (OK): começa a contar o tempo de quem foi sorteado; a janela continua aberta enquanto ele fala;
+//  2º clique (Próximo — ou Encerrar, se for o último): fecha a janela e libera o próximo sorteio.
+function aoClicarOk() {
+    if (window.isViewer || !giro || giro.id !== giroConcluidoId) return;
+    if (timerEstado.pessoa.giroId !== giro.id) {
+        const entry = entries.find(e => e.id === giro.winnerId);
+        iniciarFalaDe(entry ? entry.name : '', agora(), giro.id);
+        publicar();
+        return;
+    }
+    confirmarVencedor();
+}
+document.getElementById('okBtn').addEventListener('click', aoClicarOk);
 
 // LOOP ÚNICO DE RENDERIZAÇÃO (substitui o idle, o rotateWheel e o blink separados)
 function frame() {
@@ -1341,15 +1361,16 @@ function pauseTimer() {
     pararContador(timerEstado.pessoa);
 }
 
-// Quando o nome é sorteado: o geral segue (ou começa) e o da pessoa zera e começa
-function iniciarFalaDe(nome, desde = agora()) {
+// Ao clicar em OK no sorteado: o geral segue (ou começa) e o da pessoa zera e começa
+function iniciarFalaDe(nome, desde = agora(), giroId = '') {
     startTimer();
-    timerEstado.pessoa = { nome, rodando: true, base: 0, desde };
+    timerEstado.pessoa = { nome, rodando: true, base: 0, desde, giroId };
 }
 
 const timerBoxEl = document.getElementById('timerBox');
 const timerGeralEl = document.getElementById('speechTimer');
 const timerBotaoEl = document.getElementById('timerToggle');
+const okBtnEl = document.getElementById('okBtn');
 const pessoaBoxEl = document.getElementById('personTimer');
 let pessoaAssinatura = '';
 let pessoaTempoAtualEl = null;   // <span> do tempo de quem está falando agora
@@ -1399,6 +1420,11 @@ function atualizarTimerUI(now) {
 
     const rotulo = timerEstado.rodando ? '⏸ Pausar' : (timerEstado.base > 0 ? '▶ Continuar' : '▶ Iniciar');
     definirTexto(timerBotaoEl, rotulo);
+
+    if (vencedorId) {   // janela do sorteado aberta: OK → Próximo (ou Encerrar, se for o último)
+        const falaIniciada = !!giro && p.giroId === giro.id;
+        definirTexto(okBtnEl, !falaIniciada ? '[ OK ]' : (entries.length === 1 ? '[ ENCERRAR ]' : '[ PRÓXIMO ]'));
+    }
 }
 
 // Anfitrião: iniciar/pausar (útil quando a reunião começa com recados antes da roleta)
